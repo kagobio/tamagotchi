@@ -6,7 +6,7 @@ Una mascota virtual impresa en 3D con software propio. Se conecta al ordenador y
 
 - `carcasa/`: medidas de la carcasa (`dims.mjs`, en mm) y la figura isométrica de su despiece.
 - `.claude/skills/anatomy/`: la skill [Anatomy](https://github.com/wheresryan22/anatomy) (licencia MIT, commit `1482e84`), instalada como skill de proyecto para dibujar las figuras. En Claude Code se usa con `/anatomy`.
-- `.claude/skills/solidcraft-*/`: las cinco skills de modelado de [SolidCraft](https://github.com/tangency-labs/solidcraft) (commit `fc44207a`), un CAD paramétrico de código abierto. Sirven para modelar la carcasa imprimible; necesitan el programa `solidcraft-cli`, que se instala aparte.
+- `.claude/skills/solidcraft-*/`: las cinco skills de modelado de [SolidCraft](https://github.com/tangency-labs/solidcraft) (commit `fc44207a`), un CAD paramétrico de código abierto. Sirven para modelar la carcasa imprimible; necesitan el programa `solidcraft-cli` (va incluido en el instalador de SolidCraft); `.mcp.json` lo conecta a Claude Code como servidor MCP.
 
 ## Figura de la carcasa
 
