@@ -10,12 +10,12 @@ export const THICK = 16;
 export const CAVITY = { x: BODY.x + WALL, y: BODY.y + WALL, w: BODY.w - WALL * 2, d: BODY.d - WALL * 2, r: BODY.r - WALL };
 
 export const BOSSES = [[-18.5, -26.5], [18.5, -26.5], [-18.5, 26.5], [18.5, 26.5]];
-export const BOSS_R = 2.5;
+export const BOSS_R = 3;
 export const SCREW = { r: 1, head: 1.9, headH: 1.6, length: 12 };
 
-export const LUG = { x: -5, y: -39, w: 10, d: 9, r: 4.5 };
+export const LUG = { x: -5, y: -40.5, w: 10, d: 10, r: 5 };
 export const LUG_Z = [SPLIT, 13];
-export const LUG_HOLE = { at: [0, -36], r: 1.7 };
+export const LUG_HOLE = { at: [0, -36.5], r: 1.7 };
 
 export const PORT = { half: 4.8, z: 4.4 };
 
@@ -60,3 +60,26 @@ export const PIECES = [
   { id: "front", travel: 112, key: THICK, name: "Tapa frontal", note: "ventana 31 × 17, anilla para cordón" },
 ];
 export const SPRING = { stagger: 0.06, stiffness: 64, damping: 14.2, substeps: 4 };
+
+// Solo para el CAD imprimible (cad/build-cad.mjs).
+export const PRINT = {
+  chamferBack: 0.8,
+  chamferFront: 1.2,
+  screwHole: 2.4,
+  headBore: 4.2,
+  headDepth: 1.8,
+  insertHole: 3.2,
+  insertDepth: 4,
+  frontBossZ: 10,
+  capHole: CAP_HOLE_R * 2,
+  lens: { margin: 1, depth: 0.8 },
+  ribs: [
+    { x: -14, y: -25.4, w: 28, d: 1 },
+    { x: -14, y: 6.4, w: 28, d: 1 },
+    { x: -16.6, y: -22, w: 1, d: 26 },
+    { x: 15.6, y: -22, w: 1, d: 26 },
+  ],
+  ribH: 2,
+  soundHoles: [[-17.2, 14.5], [-15, 14.5], [-12.8, 14.5]],
+  soundHole: 1.5,
+};

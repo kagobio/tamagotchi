@@ -16,3 +16,20 @@ Una mascota virtual impresa en 3D con software propio. Se conecta al ordenador y
 node carcasa/build.mjs
 node carcasa/build.mjs --light
 ```
+
+## Tapas imprimibles
+
+`carcasa/cad/` tiene las dos tapas modeladas con SolidCraft a partir de las mismas medidas de `carcasa/dims.mjs`:
+
+- `trasera.stl`, `frontal.stl` (y `.3mf`): para el laminador.
+- `trasera.step`, `frontal.step`: para abrir en cualquier CAD.
+- `trasera.sc`, `frontal.sc`: diseños de SolidCraft, editables.
+- `trasera.json`, `frontal.json`: los scripts de comandos que las generan.
+
+Para regenerarlas después de cambiar una medida (necesita `solidcraft-cli`):
+
+```sh
+node carcasa/cad/build-cad.mjs --run
+```
+
+Es una primera versión sin imprimir: las medidas de los componentes son nominales y hay que comprobarlas con las piezas reales.

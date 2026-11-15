@@ -1,0 +1,361 @@
+{
+ "commands": [
+  {
+   "command": "solid.box",
+   "params": {
+    "length": 50,
+    "width": 64,
+    "height": 9,
+    "center": [
+     0,
+     0,
+     4.5
+    ],
+    "name": "Bloque",
+    "body_name": "Trasera"
+   }
+  },
+  {
+   "command": "solid.fillet",
+   "params": {
+    "edges": [
+     [
+      -25,
+      -32,
+      4.5
+     ],
+     [
+      25,
+      -32,
+      4.5
+     ],
+     [
+      -25,
+      32,
+      4.5
+     ],
+     [
+      25,
+      32,
+      4.5
+     ]
+    ],
+    "radius": 11,
+    "name": "Esquinas"
+   }
+  },
+  {
+   "command": "solid.chamfer",
+   "params": {
+    "edges": [
+     [
+      0,
+      -32,
+      0
+     ]
+    ],
+    "distance": 0.8,
+    "name": "Chaflan"
+   }
+  },
+  {
+   "command": "sketch.create",
+   "params": {
+    "plane": "XY",
+    "offset": 9,
+    "name": "CroquisHueco"
+   }
+  },
+  {
+   "command": "sketch.rectangle.center",
+   "params": {
+    "center": [
+     0,
+     0
+    ],
+    "corner": [
+     23,
+     30
+    ]
+   }
+  },
+  {
+   "command": "sketch.fillet",
+   "params": {
+    "a": "l1",
+    "b": "l2",
+    "radius": 9
+   }
+  },
+  {
+   "command": "sketch.fillet",
+   "params": {
+    "a": "l2",
+    "b": "l3",
+    "radius": 9
+   }
+  },
+  {
+   "command": "sketch.fillet",
+   "params": {
+    "a": "l3",
+    "b": "l4",
+    "radius": 9
+   }
+  },
+  {
+   "command": "sketch.fillet",
+   "params": {
+    "a": "l4",
+    "b": "l1",
+    "radius": 9
+   }
+  },
+  {
+   "command": "sketch.finish",
+   "params": {}
+  },
+  {
+   "command": "solid.extrude",
+   "params": {
+    "distance": 7.4,
+    "direction": "negative",
+    "operation": "cut",
+    "name": "Hueco"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": 28,
+    "width": 1,
+    "height": 2.2,
+    "center": [
+     0,
+     -24.9,
+     2.5
+    ],
+    "operation": "join",
+    "name": "Nervio1"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": 28,
+    "width": 1,
+    "height": 2.2,
+    "center": [
+     0,
+     6.9,
+     2.5
+    ],
+    "operation": "join",
+    "name": "Nervio2"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": 1,
+    "width": 26,
+    "height": 2.2,
+    "center": [
+     -16.1,
+     -9,
+     2.5
+    ],
+    "operation": "join",
+    "name": "Nervio3"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": 1,
+    "width": 26,
+    "height": 2.2,
+    "center": [
+     16.1,
+     -9,
+     2.5
+    ],
+    "operation": "join",
+    "name": "Nervio4"
+   }
+  },
+  {
+   "command": "solid.cylinder",
+   "params": {
+    "radius": 3,
+    "height": 7,
+    "base": [
+     -18.5,
+     -26.5,
+     1.4000000000000001
+    ],
+    "operation": "join",
+    "name": "Poste1"
+   }
+  },
+  {
+   "command": "solid.cylinder",
+   "params": {
+    "radius": 3,
+    "height": 7,
+    "base": [
+     18.5,
+     -26.5,
+     1.4000000000000001
+    ],
+    "operation": "join",
+    "name": "Poste2"
+   }
+  },
+  {
+   "command": "solid.cylinder",
+   "params": {
+    "radius": 3,
+    "height": 7,
+    "base": [
+     -18.5,
+     26.5,
+     1.4000000000000001
+    ],
+    "operation": "join",
+    "name": "Poste3"
+   }
+  },
+  {
+   "command": "solid.cylinder",
+   "params": {
+    "radius": 3,
+    "height": 7,
+    "base": [
+     18.5,
+     26.5,
+     1.4000000000000001
+    ],
+    "operation": "join",
+    "name": "Poste4"
+   }
+  },
+  {
+   "command": "solid.hole",
+   "params": {
+    "position": [
+     -18.5,
+     -26.5,
+     0
+    ],
+    "diameter": 2.4,
+    "type": "counterbore",
+    "cb_diameter": 4.2,
+    "cb_depth": 1.8,
+    "name": "Tornillo1"
+   }
+  },
+  {
+   "command": "solid.hole",
+   "params": {
+    "position": [
+     18.5,
+     -26.5,
+     0
+    ],
+    "diameter": 2.4,
+    "type": "counterbore",
+    "cb_diameter": 4.2,
+    "cb_depth": 1.8,
+    "name": "Tornillo2"
+   }
+  },
+  {
+   "command": "solid.hole",
+   "params": {
+    "position": [
+     -18.5,
+     26.5,
+     0
+    ],
+    "diameter": 2.4,
+    "type": "counterbore",
+    "cb_diameter": 4.2,
+    "cb_depth": 1.8,
+    "name": "Tornillo3"
+   }
+  },
+  {
+   "command": "solid.hole",
+   "params": {
+    "position": [
+     18.5,
+     26.5,
+     0
+    ],
+    "diameter": 2.4,
+    "type": "counterbore",
+    "cb_diameter": 4.2,
+    "cb_depth": 1.8,
+    "name": "Tornillo4"
+   }
+  },
+  {
+   "command": "solid.box",
+   "params": {
+    "length": 9.6,
+    "width": 4,
+    "height": 5.6,
+    "center": [
+     0,
+     31,
+     7.2
+    ],
+    "operation": "cut",
+    "name": "MuescaUSB"
+   }
+  },
+  {
+   "command": "solid.cylinder",
+   "params": {
+    "radius": 0.75,
+    "height": 3.6,
+    "base": [
+     -17.2,
+     14.5,
+     -1
+    ],
+    "operation": "cut",
+    "name": "Sonido1"
+   }
+  },
+  {
+   "command": "solid.cylinder",
+   "params": {
+    "radius": 0.75,
+    "height": 3.6,
+    "base": [
+     -15,
+     14.5,
+     -1
+    ],
+    "operation": "cut",
+    "name": "Sonido2"
+   }
+  },
+  {
+   "command": "solid.cylinder",
+   "params": {
+    "radius": 0.75,
+    "height": 3.6,
+    "base": [
+     -12.8,
+     14.5,
+     -1
+    ],
+    "operation": "cut",
+    "name": "Sonido3"
+   }
+  }
+ ]
+}
