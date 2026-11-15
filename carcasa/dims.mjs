@@ -53,10 +53,10 @@ export const LENS_DROP = 0.6;
 export const PIECES = [
   { id: "screws", travel: 0, key: -1, name: "Tornillos", note: "4 × M2×12, entran por la espalda" },
   { id: "back", travel: 13, key: 0, name: "Tapa trasera", note: "pared 2 mm, motor de vibración Ø10" },
-  { id: "battery", travel: 25, key: BATTERY.z, name: "Batería", note: `${BATTERY.name}, ~${BATTERY.mAh} mAh` },
-  { id: "xiao", travel: 38, key: XIAO.z, name: "Cerebro", note: "XIAO ESP32-S3, USB-C, carga LiPo" },
-  { id: "carrier", travel: 50, key: CARRIER.z, name: "Placa portadora", note: "OLED 1.3\", 3 pulsadores, zumbador" },
-  { id: "caps", travel: 60, key: CAP.top, name: "Botones", note: "3 capuchones impresos, Ø7" },
-  { id: "front", travel: 72, key: THICK, name: "Tapa frontal", note: "ventana 31 × 17, anilla para cordón" },
+  { id: "battery", travel: 28, key: BATTERY.z, name: "Batería", note: `${BATTERY.name}, ~${BATTERY.mAh} mAh` },
+  { id: "xiao", travel: 44, key: XIAO.z, name: "Cerebro", note: "XIAO ESP32-S3, USB-C, carga LiPo" },
+  { id: "carrier", travel: 62, key: CARRIER.z, name: "Placa portadora", note: "OLED 1.3\", 3 pulsadores, zumbador" },
+  { id: "caps", travel: 68, key: CAP.top, name: "Botones", note: "3 capuchones impresos, Ø7" },
+  { id: "front", travel: 112, key: THICK, name: "Tapa frontal", note: "ventana 31 × 17, anilla para cordón" },
 ];
 export const SPRING = { stagger: 0.06, stiffness: 64, damping: 14.2, substeps: 4 };
