@@ -33,3 +33,14 @@ node carcasa/cad/build-cad.mjs --run
 ```
 
 Es una primera versión sin imprimir: las medidas de los componentes son nominales y hay que comprobarlas con las piezas reales.
+
+## Simulador de la mascota
+
+`simulador/` es la mascota ("Brote") tal como se verá en la pantalla de 240 × 280 de la placa, con la lógica del juego separada del dibujo para poder pasarla después al firmware:
+
+- `pet.js`: estado, paso del tiempo, acciones, minijuego y los mensajes del ordenador (`phone`, `claude`, `cal`). No toca la pantalla.
+- `draw.js`: todo lo que se pinta, solo con rectángulos y texto.
+- `main.js` e `index.html`: botones PWR y BOOT, táctil y un panel que imita lo que mandará el programa del ordenador.
+- `simulador.html`: todo junto en un archivo que se abre sin servidor. Se regenera con `node simulador/bundle.mjs`.
+
+Controles: tocar los iconos de abajo (comer, jugar, dormir, estado) o acariciar a Brote; con botones, PWR pasa de opción y BOOT confirma; mantener PWR apaga la pantalla.

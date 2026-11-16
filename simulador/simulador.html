@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulador de Brote</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=Silkscreen&display=swap">
+<style>
+/* Banco de pruebas: el aparato a la izquierda, a su escala real de cristal y marco; los mandos del ordenador a la derecha. */
+:root {
+  --page: #e9eef2;
+  --panel: #ffffff;
+  --ink: #18212b;
+  --muted: #5d6b79;
+  --line: #cfd8e0;
+  --accent: #2f7d6b;
+  --shell: #2b3440;
+  --display: "Silkscreen", "IBM Plex Mono", monospace;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --s: 1.25;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page: #12171d; --panel: #1a2129; --ink: #e6edf3; --muted: #93a1af; --line: #2c3742; --accent: #7ee0c2; --shell: #3a4654;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --page: #12171d; --panel: #1a2129; --ink: #e6edf3; --muted: #93a1af; --line: #2c3742; --accent: #7ee0c2; --shell: #3a4654;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--page); color: var(--ink); font: 15px/1.5 var(--body); }
+main { max-width: 880px; margin: 0 auto; padding: 28px 16px 48px; display: flex; flex-direction: column; gap: 24px; }
+header { display: flex; flex-direction: column; gap: 6px; }
+h1 { margin: 0; font: 400 26px/1.1 var(--display); letter-spacing: 0.02em; text-wrap: balance; }
+header p { margin: 0; color: var(--muted); max-width: 62ch; }
+.bench { display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start; justify-content: center; }
+.stand { display: flex; flex-direction: column; gap: 14px; align-items: center; }
+
+/* Cristal de 33,13 × 41,13 mm sobre una zona visible de 27,97 × 32,63 mm: 8,6 px por mm a escala 1. */
+.device { position: relative; padding: calc(20px * var(--s)); border-radius: calc(46px * var(--s)); background: var(--shell); box-shadow: 0 18px 40px -22px #000a, inset 0 0 0 1px #ffffff14; outline: none; }
+.device:focus-visible { box-shadow: 0 0 0 3px var(--accent); }
+.glass { padding: calc(36px * var(--s)) calc(22px * var(--s)); border-radius: calc(34px * var(--s)); background: #07080b; box-shadow: inset 0 0 0 1px #ffffff1c; }
+#screen { display: block; width: calc(240px * var(--s)); height: calc(280px * var(--s)); border-radius: calc(30px * var(--s)); image-rendering: pixelated; touch-action: manipulation; cursor: pointer; background: #050507; }
+.side { position: absolute; right: calc(-9px * var(--s)); width: calc(12px * var(--s)); height: calc(46px * var(--s)); padding: 0; border: 0; border-radius: 0 6px 6px 0; background: var(--shell); filter: brightness(1.35); cursor: pointer; }
+.side:hover, .side:focus-visible { filter: brightness(1.8); outline: none; }
+.side:active { transform: translateX(-3px); }
+.side span { position: absolute; left: calc(100% + 8px); top: 50%; transform: translateY(-50%); font: 600 10px/1 var(--mono); letter-spacing: 0.08em; color: var(--muted); }
+#pwr { top: 22%; } #boot { top: 44%; } #rst { top: 66%; height: calc(26px * var(--s)); }
+.usb { position: absolute; left: calc(-4px * var(--s)); top: 44%; width: calc(7px * var(--s)); height: calc(46px * var(--s)); border-radius: 4px 0 0 4px; background: #0b0d11; }
+.readout { text-align: center; }
+.readout strong { display: block; font: 600 15px/1.3 var(--body); }
+.readout span { font: 400 12px/1.4 var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.panel { flex: 1 1 300px; max-width: 420px; display: flex; flex-direction: column; gap: 14px; }
+.panel h2 { margin: 0; font: 600 12px/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.group { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+.row { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: space-between; }
+.row label, .group > label { font-weight: 500; }
+output { font: 600 13px/1 var(--mono); color: var(--accent); font-variant-numeric: tabular-nums; }
+input[type="range"] { width: 100%; accent-color: var(--accent); }
+input[type="text"], select { font: inherit; color: var(--ink); background: var(--page); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; min-width: 0; }
+input[type="text"] { flex: 1 1 140px; }
+button.go { font: 600 14px/1 var(--body); color: var(--panel); background: var(--accent); border: 0; border-radius: 6px; padding: 9px 12px; cursor: pointer; }
+button.quiet { font: 500 13px/1 var(--body); color: var(--ink); background: none; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; cursor: pointer; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.check { display: inline-flex; gap: 6px; align-items: center; font-weight: 400; }
+.speeds { display: flex; gap: 14px; flex-wrap: wrap; }
+pre { margin: 0; min-height: 92px; padding: 10px 12px; border-radius: 6px; background: var(--page); color: var(--ink); font: 400 12px/1.5 var(--mono); overflow-x: auto; white-space: pre; }
+.keys { margin: 0; color: var(--muted); font-size: 13px; max-width: 62ch; }
+kbd { font: 600 11px/1 var(--mono); padding: 2px 5px; border: 1px solid var(--line); border-radius: 4px; background: var(--panel); color: var(--ink); }
+@media (max-width: 420px) { :root { --s: 1; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Simulador de Brote</h1>
+    <p>La mascota tal como se verá en la placa ESP32-C6 con pantalla de 240 × 280. A la derecha están los datos que le mandará el programa del ordenador: cámbialos y mira cómo reacciona.</p>
+  </header>
+
+  <div class="bench">
+    <div class="stand">
+      <div class="device" id="device" tabindex="0" aria-label="Aparato: flechas para PWR, Intro para BOOT">
+        <div class="glass"><canvas id="screen" width="240" height="280" aria-label="Pantalla de la mascota"></canvas></div>
+        <span class="usb" title="USB-C"></span>
+        <button class="side" id="pwr" type="button" aria-label="Botón PWR: pulsa para pasar de opción, mantén para apagar la pantalla"><span>PWR</span></button>
+        <button class="side" id="boot" type="button" aria-label="Botón BOOT: confirmar"><span>BOOT</span></button>
+        <button class="side" id="rst" type="button" aria-label="Botón RST: reiniciar la placa"><span>RST</span></button>
+      </div>
+      <div class="readout"><strong id="state">Brote</strong><span id="needs"></span></div>
+    </div>
+
+    <section class="panel" aria-label="Datos del ordenador">
+      <h2>Lo que manda el ordenador</h2>
+      <div class="group">
+        <div class="row"><label for="phone-level">Batería del móvil</label><output id="phone-out" for="phone-level"></output></div>
+        <input id="phone-level" type="range" min="0" max="100" value="64">
+        <label class="check"><input id="phone-charging" type="checkbox"> Cargando</label>
+      </div>
+      <div class="group">
+        <div class="row"><label for="claude-used">Uso de Claude</label><output id="claude-out" for="claude-used"></output></div>
+        <input id="claude-used" type="range" min="0" max="100" value="37">
+      </div>
+      <form class="group" id="cal-form">
+        <label for="cal-title">Aviso de calendario</label>
+        <div class="row">
+          <input id="cal-title" type="text" value="Reunión de equipo" maxlength="40">
+          <select id="cal-minutes" aria-label="Cuándo empieza">
+            <option value="0">ahora</option><option value="5">en 5 min</option><option value="10" selected>en 10 min</option><option value="30">en 30 min</option>
+          </select>
+        </div>
+        <button class="go" type="submit">Enviar aviso</button>
+      </form>
+      <div class="group">
+        <div class="row"><span><strong>Velocidad del tiempo</strong></span></div>
+        <div class="speeds">
+          <label class="check"><input type="radio" name="speed" id="speed-1" value="1" checked> real</label>
+          <label class="check"><input type="radio" name="speed" id="speed-60" value="60"> 1 min por segundo</label>
+          <label class="check"><input type="radio" name="speed" id="speed-600" value="600"> 10 min por segundo</label>
+        </div>
+        <button class="quiet" id="restart" type="button">Empezar con una mascota nueva</button>
+      </div>
+      <div class="group">
+        <label for="log">Últimos mensajes enviados</label>
+        <pre id="log" aria-live="off"></pre>
+      </div>
+    </section>
+  </div>
+
+  <p class="keys">Toca la pantalla como si fuera táctil: los iconos de abajo dan de comer, abren el juego, apagan la luz y muestran el estado, y tocar a Brote es acariciarla. Con botones, <kbd>PWR</kbd> pasa de opción y <kbd>BOOT</kbd> confirma; mantener <kbd>PWR</kbd> apaga la pantalla. Con el aparato enfocado, las flechas hacen de PWR e <kbd>Intro</kbd> de BOOT.</p>
+</main>
+<script>
+(() => {
+// pet.js
+const Pet = (() => {
+// La lógica de la mascota, sin nada de pantalla: estado, paso del tiempo, acciones y mensajes del ordenador.
+// Solo usa números y objetos sencillos para que pasarla al firmware de la placa sea mecánico.
+
+const NAME = "Brote";
+
+// Cuánto tarda cada necesidad en vaciarse de 100 a 0, en segundos.
+const DRAIN = { fullness: 6 * 3600, mood: 8 * 3600 };
+const LOW = { phone: 20, energy: 10, fullness: 25, mood: 30 };
+const MEAL = 25;
+const ALERT_SECONDS = 14;
+
+function createPet(now) {
+  return {
+    born: now,
+    now,
+    fullness: 80,
+    mood: 75,
+    asleep: false,
+    phone: null, // { level, charging }
+    claude: null, // { used }
+    events: [], // { title, at } en milisegundos
+    alert: null, // { kind, top, text, left } con los segundos que le quedan en pantalla
+    anim: null, // { kind, t, length }
+    lastPet: 0,
+  };
+}
+
+const clamp = (value, low = 0, high = 100) => Math.min(high, Math.max(low, value));
+
+// Lo que le queda de energía: el uso de Claude que aún está libre.
+const energy = (pet) => (pet.claude ? clamp(100 - pet.claude.used) : 100);
+const exhausted = (pet) => energy(pet) <= 0;
+const sleeping = (pet) => pet.asleep || exhausted(pet);
+
+function raise(pet, kind, top, text) {
+  pet.alert = { kind, top, text, left: ALERT_SECONDS };
+}
+
+// Un mensaje del programa del ordenador. Devuelve true si lo entendió.
+function apply(pet, message) {
+  if (message.t === "phone") {
+    const before = pet.phone;
+    pet.phone = { level: clamp(Math.round(message.level)), charging: Boolean(message.charging) };
+    const wasLow = before && before.level <= LOW.phone && !before.charging;
+    const isLow = pet.phone.level <= LOW.phone && !pet.phone.charging;
+    if (isLow && !wasLow) raise(pet, "phone", "MÓVIL", `Al ${pet.phone.level} %: a cargar`);
+    return true;
+  }
+  if (message.t === "claude") {
+    const before = pet.claude ? pet.claude.used : 0;
+    pet.claude = { used: clamp(Math.round(message.used)) };
+    if (pet.claude.used >= 100 && before < 100) raise(pet, "claude", "CLAUDE", "Sin uso: a dormir");
+    else if (pet.claude.used >= 100 - LOW.energy && before < 100 - LOW.energy) raise(pet, "claude", "CLAUDE", `Queda un ${100 - pet.claude.used} % de uso.`);
+    return true;
+  }
+  if (message.t === "cal") {
+    const minutes = Math.max(0, Math.round(message.minutes));
+    const title = String(message.title || "Evento").slice(0, 40);
+    pet.events.push({ title, at: pet.now + minutes * 60000 });
+    raise(pet, "cal", minutes ? `EN ${minutes} MIN` : "AHORA", title);
+    return true;
+  }
+  return false;
+}
+
+// `seconds` es el tiempo de la mascota (puede ir acelerado); `real` el del reloj, para animaciones y avisos.
+function tick(pet, seconds, real = seconds) {
+  pet.now += seconds * 1000;
+  const rest = sleeping(pet);
+  pet.fullness = clamp(pet.fullness - (100 / DRAIN.fullness) * seconds * (rest ? 0.5 : 1));
+  const hungry = pet.fullness < LOW.fullness;
+  pet.mood = clamp(pet.mood + (rest ? 0.4 : hungry ? -2 : -1) * (100 / DRAIN.mood) * seconds);
+  if (pet.anim) {
+    pet.anim.t += real;
+    if (pet.anim.t >= pet.anim.length) {
+      if (pet.anim.kind === "eat") pet.fullness = clamp(pet.fullness + MEAL);
+      pet.anim = null;
+    }
+  }
+  if (pet.alert && (pet.alert.left -= real) <= 0) pet.alert = null;
+  const due = pet.events.find((event) => !event.rung && pet.now >= event.at);
+  if (due) {
+    due.rung = true;
+    raise(pet, "cal", "AHORA", due.title);
+  }
+  pet.events = pet.events.filter((event) => pet.now < event.at + 60000);
+}
+
+const play = (pet, kind, length) => {
+  pet.anim = { kind, t: 0, length };
+};
+
+function feed(pet) {
+  if (sleeping(pet) || pet.anim) return false;
+  if (pet.fullness > 90) {
+    play(pet, "no", 1.1);
+    return false;
+  }
+  play(pet, "eat", 2.6);
+  return true;
+}
+
+function stroke(pet) {
+  if (sleeping(pet) || pet.anim || pet.now - pet.lastPet < 1500) return false;
+  pet.lastPet = pet.now;
+  pet.mood = clamp(pet.mood + 4);
+  play(pet, "love", 1.3);
+  return true;
+}
+
+// Devuelve true si cambió algo; agotada no se despierta.
+function toggleSleep(pet) {
+  if (exhausted(pet)) return false;
+  pet.asleep = !pet.asleep;
+  pet.anim = null;
+  return true;
+}
+
+function reward(pet, stars) {
+  pet.mood = clamp(pet.mood + Math.min(35, stars * 4));
+  pet.fullness = clamp(pet.fullness - 3);
+  if (stars > 0) play(pet, "love", 1.6);
+}
+
+function dismiss(pet) {
+  if (!pet.alert) return false;
+  pet.alert = null;
+  return true;
+}
+
+// Cómo se encuentra, de lo más urgente a lo menos.
+function feeling(pet) {
+  if (sleeping(pet)) return "dormida";
+  if (pet.fullness < LOW.fullness) return "hambrienta";
+  if (pet.phone && pet.phone.level <= LOW.phone && !pet.phone.charging) return "cansada";
+  if (energy(pet) <= LOW.energy) return "cansada";
+  if (pet.mood < LOW.mood) return "triste";
+  if (pet.mood > 70 && pet.fullness > 50) return "contenta";
+  return "tranquila";
+}
+
+// La frase corta que explica por qué está así.
+function whisper(pet) {
+  if (exhausted(pet)) return "Sin energía: Claude agotado";
+  if (pet.asleep) return "Zzz…";
+  if (pet.fullness < LOW.fullness) return "Tengo hambre";
+  if (pet.phone && pet.phone.level <= LOW.phone && !pet.phone.charging) return `Tu móvil está al ${pet.phone.level} %`;
+  if (energy(pet) <= LOW.energy) return `Queda un ${energy(pet)} % de Claude`;
+  if (pet.mood < LOW.mood) return "¿Jugamos un rato?";
+  const next = pet.events.find((event) => !event.rung);
+  if (next) return `${next.title} en ${Math.max(1, Math.round((next.at - pet.now) / 60000))} min`;
+  return feeling(pet) === "contenta" ? "¡Qué buen día!" : "Aquí estoy";
+}
+
+function age(pet) {
+  const minutes = Math.floor((pet.now - pet.born) / 60000);
+  const days = Math.floor(minutes / 1440);
+  const hours = Math.floor((minutes % 1440) / 60);
+  return days ? `${days} d ${hours} h` : hours ? `${hours} h ${minutes % 60} min` : `${minutes} min`;
+}
+
+// El minijuego: estrellas que caen por tres carriles y la mascota se coloca debajo.
+const GAME = { seconds: 20, lanes: 3, floor: 1 };
+
+function createGame() {
+  return { t: 0, lane: 1, stars: [], caught: 0, missed: 0, next: 0.6, over: false, seed: 7 };
+}
+
+function gameTick(game, seconds) {
+  if (game.over) return;
+  game.t += seconds;
+  const speed = 0.45 + game.t * 0.03;
+  game.next -= seconds;
+  if (game.next <= 0 && game.t < GAME.seconds - 1.5) {
+    game.seed = (game.seed * 1103515245 + 12345) % 2147483648;
+    game.stars.push({ lane: game.seed % GAME.lanes, y: 0 });
+    game.next = Math.max(0.55, 1.2 - game.t * 0.03);
+  }
+  for (const star of game.stars) star.y += speed * seconds;
+  for (const star of game.stars.filter((item) => item.y >= GAME.floor)) {
+    if (star.lane === game.lane) game.caught += 1;
+    else game.missed += 1;
+  }
+  game.stars = game.stars.filter((item) => item.y < GAME.floor);
+  if (game.t >= GAME.seconds) game.over = true;
+}
+
+return { NAME, DRAIN, LOW, MEAL, ALERT_SECONDS, createPet, energy, exhausted, sleeping, apply, tick, feed, stroke, toggleSleep, reward, dismiss, feeling, whisper, age, GAME, createGame, gameTick };
+})();
+// draw.js
+const { GAME, LOW, NAME, age, energy, feeling, sleeping, whisper } = Pet;
+// Todo lo que se pinta en la pantalla de 240 × 280. Solo usa rectángulos y texto,
+// las mismas primitivas que tendrá la placa.
+
+const W = 240;
+const H = 280;
+const MENU = ["comer", "jugar", "dormir", "estado"];
+const SLOTS = [48, 96, 144, 192];
+const BAR = { y: 232, size: 40 };
+const LANES = [60, 120, 180];
+
+const C = {
+  ink: "#1b1530",
+  body: "#7ee0c2",
+  shade: "#4fb89c",
+  belly: "#eafff6",
+  cheek: "#ff8fa3",
+  white: "#ffffff",
+  leaf: "#5cc96b",
+  stem: "#3a9a4c",
+  yellow: "#ffd45e",
+  red: "#ff5d5d",
+  blue: "#6bb6ff",
+  wall: "#ffe3c2",
+  wallLine: "#f7d2a8",
+  floor: "#d99a6c",
+  floorLine: "#c4855a",
+  night: "#171a2b",
+  nightLine: "#20253d",
+  nightFloor: "#2f3a5f",
+  grey: "#8c93b3",
+  card: "#f4f6ff",
+  dim: "#59607f",
+};
+
+const ICONS = {
+  comer: ["....g....", "...gg....", ".rrr.rrr.", "rrrrrrrrr", "rwrrrrrrr", "rrrrrrrrr", "rrrrrrrrr", ".rrrrrrr.", "..rr.rr.."],
+  jugar: ["....y....", "....y....", "...yyy...", "yyyyyyyyy", ".yyyyyyy.", "..yyyyy..", "..yyyyy..", ".yyy.yyy.", ".y.....y."],
+  dormir: ["...bbbb..", "..bbb....", ".bbb.....", ".bbb.....", ".bbb.....", ".bbbb...b", "..bbbbbbb", "...bbbbb.", "........."],
+  estado: [".........", "......ww.", "......ww.", "...ww.ww.", "...ww.ww.", "ww.ww.ww.", "ww.ww.ww.", "ww.ww.ww.", "........."],
+  heart: [".r.r.", "rrrrr", "rrrrr", ".rrr.", "..r.."],
+  bell: ["..y..", ".yyy.", ".yyy.", "yyyyy", "..y.."],
+  bolt: ["..y", ".y.", "yyy", ".y.", "y.."],
+};
+const INK = { g: C.leaf, r: C.red, w: C.white, y: C.yellow, b: C.blue };
+
+function map(ctx, rows, x, y, unit, hide = 0) {
+  rows.forEach((row, dy) => {
+    for (let dx = 0; dx < row.length - hide; dx++) {
+      if (row[dx] === ".") continue;
+      ctx.fillStyle = INK[row[dx]];
+      ctx.fillRect(x + dx * unit, y + dy * unit, unit, unit);
+    }
+  });
+}
+
+function text(ctx, string, x, y, { size = 12, color = C.ink, align = "left", weight = 600, max = 0 } = {}) {
+  ctx.font = `${weight} ${size}px "IBM Plex Mono", ui-monospace, Menlo, monospace`;
+  ctx.textAlign = align;
+  ctx.textBaseline = "top";
+  ctx.fillStyle = color;
+  let shown = string;
+  if (max) while (shown.length > 1 && ctx.measureText(shown).width > max) shown = `${shown.slice(0, -2)}…`;
+  ctx.fillText(shown, x, y);
+}
+
+function box(ctx, x, y, w, h, r, color) {
+  ctx.fillStyle = color;
+  ctx.fillRect(x + r, y, w - r * 2, h);
+  ctx.fillRect(x, y + r, w, h - r * 2);
+  for (let step = 1; step < r; step++) {
+    const inset = r - Math.round(Math.sqrt(r * r - (r - step) * (r - step)));
+    ctx.fillRect(x + inset, y + step, w - inset * 2, 1);
+    ctx.fillRect(x + inset, y + h - step - 1, w - inset * 2, 1);
+  }
+}
+
+// Una rejilla de píxeles gordos: rect y elipse en unidades de `unit` píxeles de pantalla.
+function grid(ctx, ox, oy, unit) {
+  const rect = (x, y, w, h, color) => {
+    ctx.fillStyle = color;
+    ctx.fillRect(ox + x * unit, oy + y * unit, w * unit, h * unit);
+  };
+  const ellipse = (cx, cy, rx, ry, color) => {
+    for (let dy = -ry; dy <= ry; dy++) {
+      const half = Math.round(rx * Math.sqrt(1 - (dy * dy) / (ry * ry + 0.5)));
+      rect(cx - half, cy + dy, half * 2 + 1, 1, color);
+    }
+  };
+  return { rect, ellipse };
+}
+
+// La mascota: `x`, `ground` en píxeles de pantalla; `face` es cómo se encuentra.
+function drawPet(ctx, { x, ground, unit = 4, t, face, anim = null, alarmed = false, night = false }) {
+  const g = grid(ctx, x, ground, unit);
+  const asleep = face === "dormida";
+  const bob = asleep ? Math.floor(t * 0.6) % 2 : Math.floor(t * 1.6) % 2;
+  const rx = 13 + bob;
+  const ry = 12 - bob;
+  const down = face === "triste" || face === "hambrienta" || face === "cansada";
+  let lift = 0;
+  let sway = 0;
+  if (anim && anim.kind === "love") lift = Math.round(Math.abs(Math.sin(anim.t * 6)) * 3);
+  else if (anim && anim.kind === "no") sway = Math.round(Math.sin(anim.t * 20));
+  else if (face === "contenta" && t % 3 < 0.5) lift = Math.round(Math.sin(((t % 3) / 0.5) * Math.PI) * 4);
+  const cx = sway;
+  const by = -3 - ry - lift;
+  const top = by - ry;
+
+  g.ellipse(0, 0, 11 - Math.min(3, lift), 1, night ? C.nightLine : C.floorLine);
+  for (const side of [-1, 1]) {
+    g.ellipse(cx + side * 6, -2 - lift, 3, 1, C.ink);
+    g.rect(cx + side * 6 - 2, -3 - lift, 5, 1, C.body);
+  }
+  for (const side of [-1, 1]) {
+    g.ellipse(cx + side * 9, top + 3, 3, 3, C.ink);
+    g.ellipse(cx + side * 9, top + 3, 2, 2, C.body);
+  }
+  const droop = down || asleep ? 2 : 0;
+  g.rect(cx, top - 3, 1, 4, C.stem);
+  g.ellipse(cx - 3, top - 4 + droop, 2, 1, C.leaf);
+  g.ellipse(cx + 3, top - 5 + droop, 2, 1, C.leaf);
+
+  g.ellipse(cx, by, rx, ry, C.ink);
+  g.ellipse(cx, by, rx - 1, ry - 1, C.shade);
+  g.ellipse(cx - 1, by - 1, rx - 2, ry - 2, C.body);
+  g.ellipse(cx, by + 5, 6, 4, C.belly);
+
+  const ey = by - 3;
+  const happy = (anim && anim.kind === "love") || (face === "contenta" && lift > 0);
+  const blink = !asleep && t % 4 < 0.14;
+  for (const side of [-1, 1]) {
+    const ex = cx + side * 5;
+    if (asleep || blink) g.rect(ex - 1, ey + 1, 3, 1, C.ink);
+    else if (happy) {
+      g.rect(ex - 1, ey + 1, 1, 1, C.ink);
+      g.rect(ex, ey, 1, 1, C.ink);
+      g.rect(ex + 1, ey + 1, 1, 1, C.ink);
+    } else if (face === "cansada") {
+      g.rect(ex - 1, ey, 3, 1, C.shade);
+      g.rect(ex - 1, ey + 1, 3, 2, C.ink);
+    } else {
+      g.rect(ex - 1, ey - 1 - (alarmed ? 1 : 0), 3, 4 + (alarmed ? 1 : 0), C.ink);
+      g.rect(ex - 1, face === "hambrienta" ? ey + 1 : ey - 1, 1, 1, C.white);
+      if (face === "triste") g.rect(ex - side, ey - 3, 2, 1, C.ink);
+    }
+    g.rect(cx + side * 9 + (side < 0 ? -1 : 0), by + 1, 2, 1, C.cheek);
+  }
+
+  const my = by + 2;
+  const dots = (points) => points.forEach(([dx, dy]) => g.rect(cx + dx, my + dy, 1, 1, C.ink));
+  const chewing = anim && anim.kind === "eat" && Math.floor(anim.t * 4) % 2 === 0;
+  const yawning = face === "cansada" && t % 6 < 1.2;
+  if (chewing || alarmed) {
+    g.rect(cx - 1, my, 3, 3, C.ink);
+    g.rect(cx, my + 2, 1, 1, C.red);
+  } else if (yawning) g.rect(cx - 2, my - 1, 4, 4, C.ink);
+  else if (asleep) g.rect(cx, my + 1, 1, 1, C.ink);
+  else if (anim && anim.kind === "eat") g.rect(cx - 1, my + 1, 3, 1, C.ink);
+  else if (face === "triste" || face === "hambrienta" || (anim && anim.kind === "no")) dots([[-2, 1], [-1, 0], [0, 0], [1, 0], [2, 1]]);
+  else if (face === "cansada") g.rect(cx - 1, my + 1, 3, 1, C.ink);
+  else dots([[-2, 0], [-1, 1], [0, 1], [1, 1], [2, 0]]);
+
+  const sx = x + cx * unit;
+  const sy = ground + by * unit;
+  if (anim && anim.kind === "eat") map(ctx, ICONS.comer, sx + 15 * unit, ground - 12 * unit, unit - 1, Math.min(8, Math.floor(anim.t / 0.55) * 2));
+  if (anim && anim.kind === "love")
+    [0, 1, 2].forEach((index) => {
+      const rise = ((anim.t * 26 + index * 14) % 44) | 0;
+      map(ctx, ICONS.heart, sx + (index - 1) * 11 * unit - 5, sy - 18 * unit - rise, 2);
+    });
+  if (asleep)
+    [0, 1, 2].forEach((index) => {
+      const rise = ((t * 9 + index * 16) % 48) | 0;
+      text(ctx, "z", sx + 12 * unit + index * 7, sy - 12 * unit - rise, { size: 11 + index * 3, color: C.blue, weight: 700 });
+    });
+  if (face === "cansada" && !yawning) {
+    g.rect(cx + 12, by - 9 + (Math.floor(t * 2) % 3), 1, 2, C.blue);
+  }
+  if (face === "hambrienta" && !anim) {
+    box(ctx, sx + 13 * unit, sy - 23 * unit, 30, 30, 8, C.card);
+    map(ctx, ICONS.comer, sx + 13 * unit + 6, sy - 23 * unit + 6, 2);
+  }
+  if (alarmed) {
+    g.rect(cx - 16, top - 2, 2, 6, C.yellow);
+    g.rect(cx - 16, top + 5, 2, 2, C.yellow);
+  }
+}
+
+function room(ctx, night) {
+  ctx.fillStyle = night ? C.night : C.wall;
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = night ? C.nightLine : C.wallLine;
+  for (let x = 12; x < W; x += 36) ctx.fillRect(x, 0, 8, 190);
+  if (night) {
+    ctx.fillStyle = C.yellow;
+    [[40, 66], [84, 96], [200, 74], [168, 120], [58, 140], [214, 150]].forEach(([x, y]) => ctx.fillRect(x, y, 2, 2));
+    map(ctx, ICONS.dormir, 172, 54, 4);
+  }
+  ctx.fillStyle = night ? C.nightFloor : C.floor;
+  ctx.fillRect(0, 190, W, H - 190);
+  ctx.fillStyle = night ? C.nightLine : C.floorLine;
+  ctx.fillRect(0, 190, W, 3);
+}
+
+function hud(ctx, pet, night) {
+  const ink = night ? C.card : C.ink;
+  const soft = night ? C.grey : C.dim;
+  const now = new Date(pet.now);
+  text(ctx, `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`, 26, 11, { size: 15, color: ink, weight: 700 });
+  if (pet.phone) {
+    const low = pet.phone.level <= LOW.phone && !pet.phone.charging;
+    ctx.fillStyle = ink;
+    ctx.fillRect(190, 12, 22, 12);
+    ctx.fillRect(212, 15, 2, 6);
+    ctx.fillStyle = night ? C.night : C.wall;
+    ctx.fillRect(192, 14, 18, 8);
+    ctx.fillStyle = low ? C.red : pet.phone.charging ? C.leaf : ink;
+    ctx.fillRect(193, 15, Math.max(1, Math.round((16 * pet.phone.level) / 100)), 6);
+    text(ctx, `${pet.phone.level}%`, 185, 12, { size: 11, color: low ? C.red : ink, align: "right" });
+    if (pet.phone.charging) map(ctx, ICONS.bolt, 141, 13, 2);
+  } else text(ctx, "móvil —", 214, 12, { size: 11, color: soft, align: "right" });
+
+  const left = energy(pet);
+  text(ctx, "CLAUDE", 26, 33, { size: 9, color: soft, weight: 700 });
+  for (let index = 0; index < 20; index++) {
+    const on = pet.claude && index < Math.ceil(left / 5);
+    ctx.fillStyle = !on ? (night ? C.nightLine : C.wallLine) : left <= LOW.energy ? C.red : left <= 50 ? "#e8a52c" : C.stem;
+    ctx.fillRect(70 + index * 6, 34, 5, 8);
+  }
+  text(ctx, pet.claude ? `${left}%` : "—", 214, 32, { size: 10, color: left <= LOW.energy ? C.red : ink, align: "right", weight: 700 });
+}
+
+function menu(ctx, selected, night, pet) {
+  MENU.forEach((name, index) => {
+    const x = SLOTS[index] - BAR.size / 2;
+    const on = index === selected;
+    box(ctx, x, BAR.y, BAR.size, BAR.size, 9, on ? C.card : night ? C.night : "#b9794c");
+    if (on) {
+      box(ctx, x + 2, BAR.y + 2, BAR.size - 4, BAR.size - 4, 7, C.ink);
+    }
+    map(ctx, ICONS[name === "dormir" && sleeping(pet) ? "dormir" : name], x + 6.5, BAR.y + 6.5, 3);
+  });
+}
+
+function card(ctx, alert) {
+  box(ctx, 14, 46, 212, 46, 10, C.ink);
+  box(ctx, 16, 48, 208, 42, 8, C.card);
+  if (alert.kind === "cal") map(ctx, ICONS.bell, 24, 56, 4);
+  else if (alert.kind === "phone") {
+    ctx.fillStyle = C.red;
+    ctx.fillRect(24, 60, 20, 12);
+    ctx.fillRect(44, 63, 2, 6);
+  } else map(ctx, ICONS.bolt, 28, 55, 5);
+  text(ctx, alert.top, 54, 53, { size: 9, color: C.dim, weight: 700 });
+  text(ctx, alert.text, 54, 66, { size: 12, color: C.ink, weight: 700, max: 162 });
+}
+
+function home(ctx, view) {
+  const { pet, t } = view;
+  const night = sleeping(pet);
+  room(ctx, night);
+  hud(ctx, pet, night);
+  drawPet(ctx, { x: 120, ground: 196, t, face: feeling(pet), anim: pet.anim, alarmed: Boolean(pet.alert) && !night, night });
+  if (pet.alert) card(ctx, pet.alert);
+  text(ctx, whisper(pet), 120, 209, { size: 11, color: night ? C.card : C.ink, align: "center", max: 200 });
+  menu(ctx, view.menu, night, pet);
+}
+
+function meter(ctx, label, value, y, note, color) {
+  text(ctx, label, 30, y, { size: 11, color: C.dim, weight: 700 });
+  text(ctx, note, 210, y, { size: 11, color: C.ink, align: "right" });
+  ctx.fillStyle = "#dfe3f3";
+  ctx.fillRect(30, y + 16, 180, 8);
+  ctx.fillStyle = color;
+  ctx.fillRect(30, y + 16, Math.round(180 * (value / 100)), 8);
+}
+
+function info(ctx, { pet }) {
+  ctx.fillStyle = C.card;
+  ctx.fillRect(0, 0, W, H);
+  text(ctx, NAME.toUpperCase(), 30, 22, { size: 18, weight: 700 });
+  text(ctx, feeling(pet), 210, 27, { size: 11, color: C.dim, align: "right" });
+  const tone = (value, low) => (value <= low ? C.red : C.stem);
+  meter(ctx, "HAMBRE", pet.fullness, 56, `${Math.round(pet.fullness)} %`, tone(pet.fullness, LOW.fullness));
+  meter(ctx, "ÁNIMO", pet.mood, 92, `${Math.round(pet.mood)} %`, tone(pet.mood, LOW.mood));
+  meter(ctx, "ENERGÍA · CLAUDE", energy(pet), 128, pet.claude ? `${energy(pet)} % libre` : "sin datos", tone(energy(pet), LOW.energy));
+  meter(ctx, "MÓVIL", pet.phone ? pet.phone.level : 0, 164, pet.phone ? `${pet.phone.level} %${pet.phone.charging ? " cargando" : ""}` : "sin datos", pet.phone ? tone(pet.phone.level, LOW.phone) : C.grey);
+  text(ctx, "EDAD", 30, 204, { size: 11, color: C.dim, weight: 700 });
+  text(ctx, age(pet), 210, 204, { size: 11, align: "right" });
+  const next = pet.events.find((event) => !event.rung);
+  text(ctx, "PRÓXIMO", 30, 224, { size: 11, color: C.dim, weight: 700 });
+  text(ctx, next ? `${next.title} · ${Math.max(1, Math.round((next.at - pet.now) / 60000))} min` : "nada", 210, 224, { size: 11, align: "right", max: 125 });
+  text(ctx, "toca o pulsa BOOT para volver", 120, 252, { size: 9, color: C.grey, align: "center" });
+}
+
+function game(ctx, { game: play, t }) {
+  ctx.fillStyle = C.night;
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = C.nightLine;
+  LANES.forEach((x) => ctx.fillRect(x - 26, 44, 52, 200));
+  ctx.fillStyle = C.nightFloor;
+  ctx.fillRect(0, 244, W, 36);
+  text(ctx, `★ ${play.caught}`, 28, 14, { size: 15, color: C.yellow, weight: 700 });
+  text(ctx, `${Math.max(0, Math.ceil(GAME.seconds - play.t))} s`, 212, 14, { size: 15, color: C.card, align: "right", weight: 700 });
+  for (const star of play.stars) map(ctx, ICONS.jugar, LANES[star.lane] - 13, 46 + star.y * 150, 3);
+  drawPet(ctx, { x: LANES[play.lane], ground: 244, unit: 2, t, face: "contenta", night: true });
+  text(ctx, "toca un carril · PWR mueve", 120, 258, { size: 9, color: C.grey, align: "center" });
+}
+
+function result(ctx, { game: play, t }) {
+  ctx.fillStyle = C.night;
+  ctx.fillRect(0, 0, W, H);
+  drawPet(ctx, { x: 120, ground: 190, t, face: play.caught ? "contenta" : "triste", anim: play.caught ? { kind: "love", t } : null, night: true });
+  text(ctx, play.caught === 1 ? "¡1 estrella!" : `¡${play.caught} estrellas!`, 120, 208, { size: 17, color: C.yellow, align: "center", weight: 700 });
+  text(ctx, play.caught ? "Brote está más contenta" : "Otra vez será", 120, 234, { size: 11, color: C.card, align: "center" });
+}
+
+function drawScreen(ctx, view) {
+  ctx.imageSmoothingEnabled = false;
+  if (view.off) {
+    ctx.fillStyle = "#050507";
+    ctx.fillRect(0, 0, W, H);
+    return;
+  }
+  ({ home, info, game, result })[view.screen](ctx, view);
+}
+
+// main.js
+// Une la lógica (pet.js) y el dibujo (draw.js) con los botones, el táctil y el panel de pruebas.
+
+
+const KEY = "brote-v1";
+const $ = (id) => document.getElementById(id);
+const canvas = $("screen");
+const ctx = canvas.getContext("2d");
+const still = matchMedia("(prefers-reduced-motion: reduce)");
+
+function load() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(KEY));
+    if (saved && typeof saved.fullness === "number") return { ...Pet.createPet(Date.now()), ...saved, now: Date.now(), anim: null, alert: null };
+  } catch {
+    /* sin almacenamiento: se empieza de cero */
+  }
+  return null;
+}
+function save() {
+  try {
+    localStorage.setItem(KEY, JSON.stringify(pet));
+  } catch {
+    /* sin almacenamiento */
+  }
+}
+
+let pet = load();
+const fresh = !pet;
+if (fresh) pet = Pet.createPet(Date.now());
+const view = { pet, t: 0, screen: "home", menu: 0, game: null, off: false };
+let speed = 1;
+let resultLeft = 0;
+let bootLeft = 0;
+
+// Lo que mandaría el programa del ordenador por USB o Bluetooth: una línea JSON por mensaje.
+const log = [];
+function send(message) {
+  Pet.apply(pet, message);
+  log.unshift(JSON.stringify(message));
+  log.length = Math.min(log.length, 6);
+  $("log").textContent = log.join("\n");
+  wake();
+}
+
+function wake() {
+  view.off = false;
+}
+
+function act(name) {
+  if (name === "comer") Pet.feed(pet);
+  else if (name === "dormir") Pet.toggleSleep(pet);
+  else if (name === "estado") view.screen = "info";
+  else if (name === "jugar") {
+    if (Pet.sleeping(pet)) return;
+    view.game = Pet.createGame();
+    view.screen = "game";
+  }
+}
+
+// PWR: pulsación corta pasa a la opción siguiente; mantenida apaga o enciende la pantalla.
+function pwr(long) {
+  if (long) {
+    view.off = !view.off;
+    return;
+  }
+  if (view.off) return wake();
+  if (view.screen === "home") {
+    if (!Pet.dismiss(pet)) view.menu = (view.menu + 1) % MENU.length;
+  } else if (view.screen === "game") view.game.lane = (view.game.lane + 1) % LANES.length;
+  else if (view.screen === "info") view.screen = "home";
+}
+
+// BOOT: confirma.
+function boot() {
+  if (view.off) return wake();
+  if (view.screen === "home") {
+    if (!Pet.dismiss(pet)) act(MENU[view.menu]);
+  } else if (view.screen === "info") view.screen = "home";
+  else if (view.screen === "game") view.game.lane = (view.game.lane + LANES.length - 1) % LANES.length;
+}
+
+function reset() {
+  save();
+  bootLeft = 0.6;
+  view.screen = "home";
+  view.game = null;
+  view.off = false;
+}
+
+function touch(x, y) {
+  if (view.off) return wake();
+  if (view.screen === "info") view.screen = "home";
+  else if (view.screen === "game") view.game.lane = LANES.reduce((best, lane, index) => (Math.abs(lane - x) < Math.abs(LANES[best] - x) ? index : best), 0);
+  else if (view.screen === "home") {
+    if (Pet.dismiss(pet)) return;
+    if (y >= BAR.y - 4) {
+      const slot = SLOTS.findIndex((centre) => Math.abs(centre - x) <= BAR.size / 2 + 3);
+      if (slot >= 0) {
+        view.menu = slot;
+        act(MENU[slot]);
+      }
+    } else if (y > 80 && y < 200 && Math.abs(x - 120) < 70) Pet.stroke(pet);
+  }
+}
+
+canvas.addEventListener("pointerdown", (event) => {
+  const box = canvas.getBoundingClientRect();
+  touch(((event.clientX - box.left) * W) / box.width, ((event.clientY - box.top) * H) / box.height);
+});
+
+let held = 0;
+let heldTimer = 0;
+const power = $("pwr");
+power.addEventListener("pointerdown", () => {
+  held = performance.now();
+  heldTimer = setTimeout(() => {
+    held = 0;
+    pwr(true);
+  }, 700);
+});
+for (const type of ["pointerup", "pointerleave", "pointercancel"])
+  power.addEventListener(type, (event) => {
+    clearTimeout(heldTimer);
+    if (held && type === "pointerup") pwr(false);
+    held = 0;
+  });
+power.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" || event.key === " ") {
+    event.preventDefault();
+    pwr(false);
+  }
+});
+$("boot").addEventListener("click", boot);
+$("rst").addEventListener("click", reset);
+$("device").addEventListener("keydown", (event) => {
+  if (event.target !== $("device")) return;
+  if (event.key === "ArrowRight" || event.key === "ArrowLeft") pwr(false);
+  else if (event.key === "Enter" || event.key === " ") boot();
+  else return;
+  event.preventDefault();
+});
+
+const phone = () => send({ t: "phone", level: Number($("phone-level").value), charging: $("phone-charging").checked });
+$("phone-level").addEventListener("input", () => {
+  $("phone-out").textContent = `${$("phone-level").value} %`;
+  phone();
+});
+$("phone-charging").addEventListener("change", phone);
+$("claude-used").addEventListener("input", () => {
+  $("claude-out").textContent = `${$("claude-used").value} % usado`;
+  send({ t: "claude", used: Number($("claude-used").value) });
+});
+$("cal-form").addEventListener("submit", (event) => {
+  event.preventDefault();
+  send({ t: "cal", title: $("cal-title").value.trim() || "Evento", minutes: Number($("cal-minutes").value) });
+});
+for (const input of document.querySelectorAll('input[name="speed"]')) input.addEventListener("change", () => (speed = Number(input.value)));
+$("restart").addEventListener("click", () => {
+  pet = Pet.createPet(Date.now());
+  view.pet = pet;
+  view.screen = "home";
+  view.game = null;
+  phone();
+  send({ t: "claude", used: Number($("claude-used").value) });
+  save();
+});
+
+if (pet.phone) {
+  $("phone-level").value = pet.phone.level;
+  $("phone-charging").checked = pet.phone.charging;
+}
+if (pet.claude) $("claude-used").value = pet.claude.used;
+$("phone-out").textContent = `${$("phone-level").value} %`;
+$("claude-out").textContent = `${$("claude-used").value} % usado`;
+phone();
+send({ t: "claude", used: Number($("claude-used").value) });
+pet.alert = null;
+
+function status() {
+  const feeling = Pet.feeling(pet);
+  $("state").textContent = `${Pet.NAME} está ${feeling}`;
+  $("needs").textContent = `hambre ${Math.round(pet.fullness)} % · ánimo ${Math.round(pet.mood)} % · energía ${Pet.energy(pet)} %`;
+}
+
+let last = 0;
+let saved = 0;
+function frame(now) {
+  const real = last ? Math.min((now - last) / 1000, 0.1) : 0;
+  last = now;
+  if (!still.matches) view.t += real;
+  if (bootLeft > 0) {
+    bootLeft -= real;
+    drawScreen(ctx, { ...view, off: true });
+  } else {
+    Pet.tick(pet, real * speed, real);
+    if (view.screen === "game") {
+      Pet.gameTick(view.game, real);
+      if (view.game.over) {
+        Pet.reward(pet, view.game.caught);
+        view.screen = "result";
+        resultLeft = 2.6;
+      }
+    } else if (view.screen === "result" && (resultLeft -= real) <= 0) {
+      view.screen = "home";
+      view.game = null;
+    }
+    drawScreen(ctx, view);
+  }
+  if (now - saved > 4000) {
+    saved = now;
+    save();
+    status();
+  }
+  requestAnimationFrame(frame);
+}
+status();
+requestAnimationFrame(frame);
+
+})();
+</script>
+</body>
+</html>

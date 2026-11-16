@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulador de Brote</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=Silkscreen&display=swap">
+<style>
+/* Banco de pruebas: el aparato a la izquierda, a su escala real de cristal y marco; los mandos del ordenador a la derecha. */
+:root {
+  --page: #e9eef2;
+  --panel: #ffffff;
+  --ink: #18212b;
+  --muted: #5d6b79;
+  --line: #cfd8e0;
+  --accent: #2f7d6b;
+  --shell: #2b3440;
+  --display: "Silkscreen", "IBM Plex Mono", monospace;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --s: 1.25;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --page: #12171d; --panel: #1a2129; --ink: #e6edf3; --muted: #93a1af; --line: #2c3742; --accent: #7ee0c2; --shell: #3a4654;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --page: #12171d; --panel: #1a2129; --ink: #e6edf3; --muted: #93a1af; --line: #2c3742; --accent: #7ee0c2; --shell: #3a4654;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--page); color: var(--ink); font: 15px/1.5 var(--body); }
+main { max-width: 880px; margin: 0 auto; padding: 28px 16px 48px; display: flex; flex-direction: column; gap: 24px; }
+header { display: flex; flex-direction: column; gap: 6px; }
+h1 { margin: 0; font: 400 26px/1.1 var(--display); letter-spacing: 0.02em; text-wrap: balance; }
+header p { margin: 0; color: var(--muted); max-width: 62ch; }
+.bench { display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start; justify-content: center; }
+.stand { display: flex; flex-direction: column; gap: 14px; align-items: center; }
+
+/* Cristal de 33,13 × 41,13 mm sobre una zona visible de 27,97 × 32,63 mm: 8,6 px por mm a escala 1. */
+.device { position: relative; padding: calc(20px * var(--s)); border-radius: calc(46px * var(--s)); background: var(--shell); box-shadow: 0 18px 40px -22px #000a, inset 0 0 0 1px #ffffff14; outline: none; }
+.device:focus-visible { box-shadow: 0 0 0 3px var(--accent); }
+.glass { padding: calc(36px * var(--s)) calc(22px * var(--s)); border-radius: calc(34px * var(--s)); background: #07080b; box-shadow: inset 0 0 0 1px #ffffff1c; }
+#screen { display: block; width: calc(240px * var(--s)); height: calc(280px * var(--s)); border-radius: calc(30px * var(--s)); image-rendering: pixelated; touch-action: manipulation; cursor: pointer; background: #050507; }
+.side { position: absolute; right: calc(-9px * var(--s)); width: calc(12px * var(--s)); height: calc(46px * var(--s)); padding: 0; border: 0; border-radius: 0 6px 6px 0; background: var(--shell); filter: brightness(1.35); cursor: pointer; }
+.side:hover, .side:focus-visible { filter: brightness(1.8); outline: none; }
+.side:active { transform: translateX(-3px); }
+.side span { position: absolute; left: calc(100% + 8px); top: 50%; transform: translateY(-50%); font: 600 10px/1 var(--mono); letter-spacing: 0.08em; color: var(--muted); }
+#pwr { top: 22%; } #boot { top: 44%; } #rst { top: 66%; height: calc(26px * var(--s)); }
+.usb { position: absolute; left: calc(-4px * var(--s)); top: 44%; width: calc(7px * var(--s)); height: calc(46px * var(--s)); border-radius: 4px 0 0 4px; background: #0b0d11; }
+.readout { text-align: center; }
+.readout strong { display: block; font: 600 15px/1.3 var(--body); }
+.readout span { font: 400 12px/1.4 var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.panel { flex: 1 1 300px; max-width: 420px; display: flex; flex-direction: column; gap: 14px; }
+.panel h2 { margin: 0; font: 600 12px/1 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.group { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+.row { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: space-between; }
+.row label, .group > label { font-weight: 500; }
+output { font: 600 13px/1 var(--mono); color: var(--accent); font-variant-numeric: tabular-nums; }
+input[type="range"] { width: 100%; accent-color: var(--accent); }
+input[type="text"], select { font: inherit; color: var(--ink); background: var(--page); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; min-width: 0; }
+input[type="text"] { flex: 1 1 140px; }
+button.go { font: 600 14px/1 var(--body); color: var(--panel); background: var(--accent); border: 0; border-radius: 6px; padding: 9px 12px; cursor: pointer; }
+button.quiet { font: 500 13px/1 var(--body); color: var(--ink); background: none; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; cursor: pointer; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.check { display: inline-flex; gap: 6px; align-items: center; font-weight: 400; }
+.speeds { display: flex; gap: 14px; flex-wrap: wrap; }
+pre { margin: 0; min-height: 92px; padding: 10px 12px; border-radius: 6px; background: var(--page); color: var(--ink); font: 400 12px/1.5 var(--mono); overflow-x: auto; white-space: pre; }
+.keys { margin: 0; color: var(--muted); font-size: 13px; max-width: 62ch; }
+kbd { font: 600 11px/1 var(--mono); padding: 2px 5px; border: 1px solid var(--line); border-radius: 4px; background: var(--panel); color: var(--ink); }
+@media (max-width: 420px) { :root { --s: 1; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Simulador de Brote</h1>
+    <p>La mascota tal como se verá en la placa ESP32-C6 con pantalla de 240 × 280. A la derecha están los datos que le mandará el programa del ordenador: cámbialos y mira cómo reacciona.</p>
+  </header>
+
+  <div class="bench">
+    <div class="stand">
+      <div class="device" id="device" tabindex="0" aria-label="Aparato: flechas para PWR, Intro para BOOT">
+        <div class="glass"><canvas id="screen" width="240" height="280" aria-label="Pantalla de la mascota"></canvas></div>
+        <span class="usb" title="USB-C"></span>
+        <button class="side" id="pwr" type="button" aria-label="Botón PWR: pulsa para pasar de opción, mantén para apagar la pantalla"><span>PWR</span></button>
+        <button class="side" id="boot" type="button" aria-label="Botón BOOT: confirmar"><span>BOOT</span></button>
+        <button class="side" id="rst" type="button" aria-label="Botón RST: reiniciar la placa"><span>RST</span></button>
+      </div>
+      <div class="readout"><strong id="state">Brote</strong><span id="needs"></span></div>
+    </div>
+
+    <section class="panel" aria-label="Datos del ordenador">
+      <h2>Lo que manda el ordenador</h2>
+      <div class="group">
+        <div class="row"><label for="phone-level">Batería del móvil</label><output id="phone-out" for="phone-level"></output></div>
+        <input id="phone-level" type="range" min="0" max="100" value="64">
+        <label class="check"><input id="phone-charging" type="checkbox"> Cargando</label>
+      </div>
+      <div class="group">
+        <div class="row"><label for="claude-used">Uso de Claude</label><output id="claude-out" for="claude-used"></output></div>
+        <input id="claude-used" type="range" min="0" max="100" value="37">
+      </div>
+      <form class="group" id="cal-form">
+        <label for="cal-title">Aviso de calendario</label>
+        <div class="row">
+          <input id="cal-title" type="text" value="Reunión de equipo" maxlength="40">
+          <select id="cal-minutes" aria-label="Cuándo empieza">
+            <option value="0">ahora</option><option value="5">en 5 min</option><option value="10" selected>en 10 min</option><option value="30">en 30 min</option>
+          </select>
+        </div>
+        <button class="go" type="submit">Enviar aviso</button>
+      </form>
+      <div class="group">
+        <div class="row"><span><strong>Velocidad del tiempo</strong></span></div>
+        <div class="speeds">
+          <label class="check"><input type="radio" name="speed" id="speed-1" value="1" checked> real</label>
+          <label class="check"><input type="radio" name="speed" id="speed-60" value="60"> 1 min por segundo</label>
+          <label class="check"><input type="radio" name="speed" id="speed-600" value="600"> 10 min por segundo</label>
+        </div>
+        <button class="quiet" id="restart" type="button">Empezar con una mascota nueva</button>
+      </div>
+      <div class="group">
+        <label for="log">Últimos mensajes enviados</label>
+        <pre id="log" aria-live="off"></pre>
+      </div>
+    </section>
+  </div>
+
+  <p class="keys">Toca la pantalla como si fuera táctil: los iconos de abajo dan de comer, abren el juego, apagan la luz y muestran el estado, y tocar a Brote es acariciarla. Con botones, <kbd>PWR</kbd> pasa de opción y <kbd>BOOT</kbd> confirma; mantener <kbd>PWR</kbd> apaga la pantalla. Con el aparato enfocado, las flechas hacen de PWR e <kbd>Intro</kbd> de BOOT.</p>
+</main>
+<script type="module" src="./main.js"></script>
+</body>
+</html>
