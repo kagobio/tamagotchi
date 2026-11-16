@@ -86,6 +86,12 @@ export function createServer({ hub, key, log = () => {}, simulator = SIMULATOR }
         log(`claude: ${claude.used} % usado`);
         return send(res, 200, { ok: true, claude });
       }
+      if (url.pathname === "/notify" && req.method === "POST") {
+        const body = await readBody(req);
+        const sent = hub.event(String(body.event));
+        if (sent) log(`aviso: ${body.event}`);
+        return send(res, 200, { ok: true, sent });
+      }
       if (url.pathname === "/cal" && req.method === "POST") {
         const body = await readBody(req);
         return send(res, 200, { ok: true, message: hub.notify(body.title || "Evento de prueba", Number(body.minutes) || 0) });

@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { createCalendar } from "./calendar.mjs";
 import { configPath, loadConfig, saveConfig } from "./config.mjs";
 import { icsSource } from "./ics.mjs";
+import { createWeather } from "./weather.mjs";
 import { outlookSource } from "./outlook.mjs";
 import { claudeSettingsPath, installStatusline } from "./settings.mjs";
 import { createServer } from "./server.mjs";
@@ -43,6 +44,22 @@ async function start(config) {
   printUrls(config);
   setInterval(() => hub.refresh(), 30000).unref();
 
+  if (config.weather.enabled) {
+    const weather = createWeather({ hub, lat: config.weather.lat, lon: config.weather.lon, log });
+    let weatherFailing = false;
+    const refresh = async () => {
+      try {
+        await weather.poll();
+        weatherFailing = false;
+      } catch (error) {
+        if (!weatherFailing) log(`Tiempo: no he podido leerlo (${error.message}). Sigo intentándolo.`);
+        weatherFailing = true;
+      }
+    };
+    log(`Tiempo: activado (se consulta open-meteo.com cada ${config.weather.pollMinutes} min).`);
+    refresh();
+    setInterval(refresh, Math.max(5, config.weather.pollMinutes) * 60000).unref();
+  }
   const { source, icsUrl, leadMinutes, skipAllDay, skipFree, pollSeconds } = config.calendar;
   if (source === "off") log("Calendario: desactivado (usa «setup» para elegir Outlook).");
   else {
@@ -83,6 +100,13 @@ async function main() {
     }
     if (flag(args, "ics")) config.calendar.icsUrl = flag(args, "ics");
     if (flag(args, "lead")) config.calendar.leadMinutes = flag(args, "lead").split(",").map(Number);
+    const place = flag(args, "weather");
+    if (place === "off") config.weather.enabled = false;
+    else if (place) {
+      const [lat, lon] = place.split(",").map(Number);
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) throw new Error("--weather debe ser LAT,LON (por ejemplo 40.42,-3.70) o off");
+      Object.assign(config.weather, { enabled: true, lat, lon });
+    }
     if (flag(args, "port")) config.port = Number(flag(args, "port"));
     if (flag(args, "host")) config.host = flag(args, "host");
     if (config.calendar.source === "ics" && !config.calendar.icsUrl) throw new Error("Falta el enlace: --ics https://…/calendar.ics");
@@ -91,7 +115,7 @@ async function main() {
     return printUrls(config);
   }
   if (command === "start") return start(config);
-  console.error("Uso: node companion/index.mjs [start | setup --calendar com|ics|off [--ics URL] [--lead 10,5] | urls | install-statusline [--force]]");
+  console.error("Uso: node companion/index.mjs [start | setup --calendar com|ics|off [--ics URL] [--lead 10,5] [--weather LAT,LON|off] | urls | install-statusline [--force]]");
   process.exit(1);
 }
 

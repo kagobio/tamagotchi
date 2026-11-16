@@ -38,3 +38,33 @@ test('no manda nada si no cambió un límite o si no hay límites', { options: {
   for (let i = 0; i < 50; i++) await Promise.resolve()
   expect(sent).toBe(0)
 })
+
+test('avisa cuando Claude termina y cuando te necesita', { options: { port: 8787, key: 'secreta' } }, async ($, on) => {
+  const calls: Array<{ url: string; body: string }> = []
+  on('classic.Stop', () => ({}))
+  on('classic.Notification', () => ({}))
+  on('http.fetch', (_, e) => {
+    calls.push({ url: e.url, body: String(e.init?.body) })
+    return { value: { status: 200, ok: true, headers: {}, text: '{}' } }
+  })
+
+  await $.classic.Stop({ stop_hook_active: false })
+  await $.classic.Notification({ message: 'Claude needs your permission', notification_type: 'permission_prompt' })
+  for (let i = 0; i < 50 && calls.length < 2; i++) await Promise.resolve()
+
+  expect(calls.map((c) => c.url)).toEqual(['http://127.0.0.1:8787/notify', 'http://127.0.0.1:8787/notify'])
+  expect(calls.map((c) => JSON.parse(c.body).event)).toEqual(['claude-done', 'claude-ask'])
+})
+
+test('no avisa de que terminó si queda trabajo en segundo plano', { options: { port: 8787, key: 'secreta' } }, async ($, on) => {
+  let sent = 0
+  on('classic.Stop', () => ({}))
+  on('http.fetch', () => {
+    sent += 1
+    return { value: { status: 200, ok: true, headers: {}, text: '{}' } }
+  })
+
+  await $.classic.Stop({ stop_hook_active: false, background_tasks: [{ id: 'b1' } as never] })
+  for (let i = 0; i < 50; i++) await Promise.resolve()
+  expect(sent).toBe(0)
+})

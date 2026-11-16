@@ -36,14 +36,30 @@ Es una primera versión sin imprimir: las medidas de los componentes son nominal
 
 ## Simulador de la mascota
 
-`simulador/` es la mascota ("Tinto") tal como se verá en la pantalla de 240 × 280 de la placa, con la lógica del juego separada del dibujo para poder pasarla después al firmware:
+`simulador/` es Tinto tal como se verá en la pantalla de 240 × 280 de la placa. Se abre con `simulador/simulador.html` (un solo archivo, sin servidor) y se regenera con `node simulador/bundle.mjs`.
 
-- `pet.js`: estado, paso del tiempo, acciones, minijuego y los mensajes del ordenador (`phone`, `claude`, `cal`). No toca la pantalla.
-- `draw.js`: todo lo que se pinta, como ilustración suave (trazados, degradados y sombras) a triple resolución. En la placa saldrá de sprites ya renderizados a partir de estos mismos dibujos.
-- `main.js` e `index.html`: botones PWR y BOOT, táctil y un panel que imita lo que mandará el programa del ordenador.
-- `simulador.html`: todo junto en un archivo que se abre sin servidor. Se regenera con `node simulador/bundle.mjs`.
+**Cuidados.** Come, duerme (solo de noche, de 23:00 a 7:00, y se despierta por la mañana), se deja acariciar y reacciona a la batería del móvil, al calendario, al uso de Claude, al tiempo, a los pasos y a los aplausos.
 
-Controles: tocar los iconos de abajo (comer, jugar, dormir, estado) o acariciar a Tinto; con botones, PWR pasa de opción y BOOT confirma; mantener PWR apaga la pantalla.
+**Ocho juegos**, cada uno con una forma distinta de jugar:
+
+| Juego | Cómo se juega |
+|---|---|
+| Atrapa estrellas | tocar un carril |
+| Caza del láser | arrastrar el láser y quedarse quieto cuando Tinto se agazapa |
+| Laberinto de lana | inclinar la placa |
+| Carrera de estanterías | tocar para saltar (doble salto) |
+| ¿Dónde está el ovillo? | seguir la caja que lo esconde |
+| Cazaratones | tocar ratones, no pájaros |
+| Simón de maullidos | repetir la secuencia de sonidos y colores |
+| Pesca en la pecera | mantener para bajar el anzuelo, soltar para subirlo |
+
+**Para seguir jugando:** las estrellas son la moneda de una **tienda** (sombreros, collares, decoración del cuarto y color de la cesta). Hay un **bonus por cambiar de juego**, un **juego del día** que da el doble, **tres retos diarios**, una **racha** de días seguidos, **doce logros**, sorpresas que aparecen (mariposas y regalos) y Tinto **pide un juego** cuando se aburre. Los juegos más difíciles se abren con las estrellas ganadas.
+
+**Más:** modo reloj, modo concentración de 25 minutos, sonidos, y un panel para probarlo todo (inclinación con el ratón o el giroscopio del móvil, pasos, aplausos, el tiempo, avisos de Claude).
+
+Estructura: la lógica no sabe nada de la pantalla (`pet.js`, `games.js`, `meta.js`, `items.js`) y se prueba con robots que juegan de verdad; el dibujo está en `gfx.js`, `room.js`, `outfit.js`, `draw.js`, `drawgames.js`, `drawui.js`; `main.js` lo une con las entradas.
+
+Pruebas: `node --test simulador/test/*.test.mjs` (27 pruebas de la lógica) y, con Playwright, `node simulador/test/flujo.e2e.cjs` (recorrido completo con clics y botones).
 
 ## Programa del ordenador
 

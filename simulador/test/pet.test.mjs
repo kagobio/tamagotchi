@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { apply, createPet, dismiss, feeling, feed, sleeping, stage, stroke, surpriseTick, tapSurprise, tick, toast, toggleSleep } from "../pet.js";
+import { apply, autoSleep, createPet, dismiss, feeling, feed, sleeping, stage, stroke, surpriseTick, tapSurprise, tick, toast, toggleSleep } from "../pet.js";
 import { makeRng } from "../games.js";
 
 const NOW = Date.parse("2026-11-16T10:00:00Z");
@@ -94,4 +94,32 @@ test("la etapa cambia con los días y las necesidades siguen funcionando", () =>
   p.mood = 10;
   assert.equal(stroke(p), true);
   assert.equal(stroke(p), false, "no se puede acariciar sin parar");
+});
+
+test("de noche se duerme solo, por la mañana despierta, y si lo despiertas tú no se vuelve a dormir", () => {
+  const at = (h) => new Date(2026, 10, 16, h, 30).getTime();
+  const pet = createPet(at(12));
+  autoSleep(pet);
+  assert.equal(pet.asleep, false, "de día no duerme");
+  pet.now = at(23);
+  autoSleep(pet);
+  assert.equal(pet.asleep, true, "a las 23 duerme");
+  pet.now = at(8) + 86400000;
+  autoSleep(pet);
+  assert.equal(pet.asleep, false, "por la mañana despierta");
+  pet.now = at(2) + 86400000 * 2;
+  autoSleep(pet);
+  assert.equal(pet.asleep, true);
+  toggleSleep(pet);
+  autoSleep(pet);
+  assert.equal(pet.asleep, false, "si lo despiertas de noche sigue despierto");
+  pet.now = at(14) + 86400000 * 2;
+  autoSleep(pet);
+  pet.now = at(23) + 86400000 * 2;
+  autoSleep(pet);
+  assert.equal(pet.asleep, true, "a la noche siguiente vuelve a dormir");
+  const manual = createPet(at(15));
+  toggleSleep(manual);
+  autoSleep(manual);
+  assert.equal(manual.asleep, true, "la siesta que pides tú no se quita sola");
 });

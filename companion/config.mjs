@@ -9,6 +9,7 @@ export const DEFAULTS = {
   host: "0.0.0.0",
   key: "",
   calendar: { source: "off", icsUrl: "", leadMinutes: [10], skipAllDay: true, skipFree: true, pollSeconds: 60 },
+  weather: { enabled: false, lat: null, lon: null, pollMinutes: 15 },
 };
 
 export function configPath(env = process.env, home = homedir(), platform = process.platform) {
@@ -31,10 +32,12 @@ export function loadConfig(path = configPath()) {
       throw new Error(`No puedo leer ${path}: ${error.message}`);
     }
   }
-  const config = { ...DEFAULTS, ...saved, calendar: { ...DEFAULTS.calendar, ...(saved.calendar || {}) } };
+  const config = { ...DEFAULTS, ...saved, calendar: { ...DEFAULTS.calendar, ...(saved.calendar || {}) }, weather: { ...DEFAULTS.weather, ...(saved.weather || {}) } };
   if (!Number.isInteger(config.port) || config.port < 1 || config.port > 65535) throw new Error(`El puerto de ${path} no es válido: ${config.port}`);
   if (!["off", "com", "ics"].includes(config.calendar.source)) throw new Error(`calendar.source debe ser off, com o ics (${path})`);
   if (!Array.isArray(config.calendar.leadMinutes) || !config.calendar.leadMinutes.every((n) => Number.isFinite(n) && n >= 0)) throw new Error(`calendar.leadMinutes debe ser una lista de minutos (${path})`);
+  const w = config.weather;
+  if (w.enabled && !(Number.isFinite(w.lat) && Number.isFinite(w.lon) && Math.abs(w.lat) <= 90 && Math.abs(w.lon) <= 180)) throw new Error(`weather.lat y weather.lon deben ser coordenadas válidas (${path})`);
   if (!config.key) {
     config.key = randomBytes(16).toString("hex");
     saveConfig(config, path);

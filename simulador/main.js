@@ -497,6 +497,7 @@ function frame(now) {
     slow += real;
     if (slow > 4) {
       slow = 0;
+      Pet.autoSleep(pet);
       view.wants = Pet.sleeping(pet) ? null : Meta.wantedGame(view.meta, pet.now, pet.mood);
       const d = Meta.refreshDay(view.meta, pet.now);
       if (d.streakBonus) Pet.toast(pet, "reto", `RACHA DE ${view.meta.streak.days} DÍAS`, `+${d.streakBonus} estrellas`);

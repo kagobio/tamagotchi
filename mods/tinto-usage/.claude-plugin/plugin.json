@@ -1,7 +1,7 @@
 {
   "name": "tinto-usage",
   "version": "0.1.0",
-  "description": "Manda a Tinto cuánto uso de Claude te queda (límites de 5 horas y semanal), leyéndolo desde Claude Code.",
+  "description": "Cuenta a Tinto cuánto uso de Claude te queda, cuándo termina una tarea y cuándo te necesita, desde Claude Code.",
   "userConfig": {
     "port": {
       "type": "number",

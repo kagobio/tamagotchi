@@ -85,6 +85,8 @@ En la app de escritorio: pulsa **+** junto a la caja del mensaje → **Plugins**
 
 Si el repositorio es privado, tu ordenador necesita tener credenciales de GitHub (`gh auth login`) para instalarlo.
 
+Además de lo que te queda, el mod avisa a Tinto **cuando Claude termina una tarea** (salta de alegría) y **cuando te necesita**, por ejemplo para pedirte un permiso (levanta las orejas). Si queda trabajo en segundo plano, todavía no cuenta como terminado.
+
 Tinto muestra como «energía» el límite que más se ha gastado de los dos. Mientras no llegue ningún dato, la barra de Claude sale vacía con un guion. El dato solo se actualiza mientras Claude Code está en uso; cuando un límite se reinicia, Tinto lo ve vacío por sí solo.
 
 *Si usas Claude Code en terminal*, también puedes poner el *statusline* en lugar del mod:
@@ -93,13 +95,21 @@ node companion/index.mjs install-statusline
 ```
 (no sustituye uno que ya tengas, salvo con `--force`).
 
-## 5. Seguridad
+## 5. El tiempo (opcional)
+
+Si quieres que por la ventana de Tinto se vea el tiempo de verdad (sol, nubes, lluvia, nieve, tormenta o niebla, y la temperatura):
+```bash
+node companion/index.mjs setup --weather 40.42,-3.70
+```
+con tus coordenadas. Se consulta [Open-Meteo](https://open-meteo.com) (gratis, sin clave) cada 15 minutos. Solo se contacta si lo activas, y las coordenadas se redondean a unos 1,1 km. Para quitarlo: `setup --weather off`.
+
+## 6. Seguridad
 
 - Todo pide la clave. Se compara sin filtrar información y el programa no guarda nada de lo que recibe salvo en memoria.
 - Por defecto escucha en tu red local para que el iPhone llegue. Si solo quieres usarlo en este ordenador: `node companion/index.mjs setup --host 127.0.0.1` (entonces el iPhone no podrá avisar).
 - La clave viaja en la dirección: úsalo solo en una red de confianza (tu casa), no en una WiFi pública.
 
-## 6. Para la placa (cuando haya firmware)
+## 7. Para la placa (cuando haya firmware)
 
 La placa hablará con el mismo programa. Lo que ofrece:
 
@@ -109,13 +119,14 @@ La placa hablará con el mismo programa. Lo que ofrece:
 | `GET /events?key=` | Flujo (SSE) de mensajes; al conectar repite lo último que se sabe |
 | `GET/POST /phone` | `level` 0–100 y `charging` |
 | `POST /claude` | `{ "windows": [{ "kind": "five_hour", "percentUsed": 37.5, "resetsAt": "…" }] }` |
+| `POST /notify` | `{ "event": "claude-done" }` o `"claude-ask"` |
 | `POST /cal` | `{ "title": "…", "minutes": 10 }`, para pruebas |
 
-Los mensajes del flujo son los mismos que entiende el juego: `{"t":"phone","level":64,"charging":false}`, `{"t":"claude","used":37}` y `{"t":"cal","title":"Reunión","minutes":10}`.
+Los mensajes del flujo son los mismos que entiende el juego: `{"t":"phone","level":64,"charging":false}`, `{"t":"claude","used":37}` `{"t":"cal","title":"Reunión","minutes":10}`, `{"t":"weather","kind":"rain","temp":11}`, `{"t":"claude-done"}` y `{"t":"claude-ask"}`.
 
 ## Qué está probado y qué no
 
-- **Probado aquí (31 pruebas automáticas más una de punta a punta con un navegador):** el servidor y su clave, los avisos del móvil, el uso de Claude, el calendario ICS (repeticiones, zonas horarias y cambio de hora), los avisos con varios márgenes, la instalación del statusline y la conexión del simulador. El mod pasa su validación y sus pruebas.
+- **Probado aquí (37 pruebas automáticas más una de punta a punta con un navegador):** el servidor y su clave, los avisos del móvil, el uso de Claude y sus avisos, el tiempo, el calendario ICS (repeticiones, zonas horarias y cambio de hora), los avisos con varios márgenes, la instalación del statusline y la conexión del simulador. El mod pasa su validación y sus pruebas.
 - **Sin probar en un ordenador con Windows:** la lectura de Outlook clásico (`outlook.ps1`), el arranque en Windows y el mod dentro de la app de escritorio.
 - **Sin probar con un iPhone:** el atajo y las automatizaciones.
 - **No verificado:** que la app de escritorio deje al mod hacer peticiones a `127.0.0.1` (depende de las políticas de red de tu instalación). Si la barra de Claude sigue vacía con el mod instalado, es lo primero que hay que mirar.

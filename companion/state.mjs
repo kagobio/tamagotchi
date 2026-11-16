@@ -4,6 +4,8 @@ import { EventEmitter } from "node:events";
 
 const clamp = (value, low = 0, high = 100) => Math.min(high, Math.max(low, value));
 const BINDING = ["five_hour", "seven_day"];
+export const WEATHER_KINDS = ["clear", "cloud", "fog", "rain", "snow", "storm"];
+export const EVENTS = ["claude-done", "claude-ask"];
 
 export function parseBool(value) {
   if (typeof value === "boolean") return value;
@@ -22,6 +24,8 @@ export class Hub extends EventEmitter {
     this.claudeAt = 0;
     this.upcoming = [];
     this.lastUsed = null;
+    this.weather = null;
+    this.lastEvent = {};
   }
 
   setPhone(level, charging) {
@@ -73,6 +77,24 @@ export class Hub extends EventEmitter {
     return message;
   }
 
+  // Un aviso suelto (Claude terminó, Claude te necesita). Se ignora si se repite en cinco segundos.
+  event(kind) {
+    if (!EVENTS.includes(kind)) throw new RangeError(`event debe ser uno de: ${EVENTS.join(", ")}`);
+    const at = this.now();
+    if (this.lastEvent[kind] && at - this.lastEvent[kind] < 5000) return false;
+    this.lastEvent[kind] = at;
+    this.emit("message", { t: kind });
+    return true;
+  }
+
+  setWeather(kind, temp) {
+    if (!WEATHER_KINDS.includes(kind)) throw new RangeError(`kind debe ser uno de: ${WEATHER_KINDS.join(", ")}`);
+    const degrees = Number(temp);
+    this.weather = { kind, temp: Number.isFinite(degrees) ? Math.round(degrees) : null, at: this.now() };
+    this.emit("message", { t: "weather", kind, temp: this.weather.temp });
+    return this.weather;
+  }
+
   setUpcoming(list) {
     this.upcoming = list;
   }
@@ -83,6 +105,7 @@ export class Hub extends EventEmitter {
     if (this.phone) out.push({ t: "phone", level: this.phone.level, charging: this.phone.charging });
     const used = this.claudeUsed();
     if (used !== null) out.push({ t: "claude", used });
+    if (this.weather) out.push({ t: "weather", kind: this.weather.kind, temp: this.weather.temp });
     return out;
   }
 
@@ -92,6 +115,7 @@ export class Hub extends EventEmitter {
       now: at,
       phone: this.phone,
       claude: this.windows ? { used: this.claudeUsed(at), windows: this.windows, at: this.claudeAt } : null,
+      weather: this.weather,
       next: this.upcoming,
     };
   }

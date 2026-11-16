@@ -7,6 +7,6 @@
   "engines": { "node": ">=20" },
   "scripts": {
     "start": "node index.mjs",
-    "test": "node --test --test-reporter=spec test/ics.test.mjs test/state-calendar.test.mjs test/server.test.mjs test/misc.test.mjs"
+    "test": "node --test --test-reporter=spec test/ics.test.mjs test/state-calendar.test.mjs test/server.test.mjs test/misc.test.mjs test/extras.test.mjs"
   }
 }

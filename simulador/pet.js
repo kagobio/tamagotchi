@@ -149,7 +149,29 @@ export function toggleSleep(pet) {
   if (exhausted(pet)) return false;
   pet.asleep = !pet.asleep;
   pet.anim = null;
+  // Si lo despiertas de madrugada, no se vuelve a dormir solo esa noche.
+  if (!pet.asleep && isNight(pet.now)) pet.nightWoke = true;
+  if (pet.asleep) pet.autoSlept = false;
   return true;
+}
+
+const isNight = (ms) => {
+  const hour = new Date(ms).getHours();
+  return hour >= 23 || hour < 7;
+};
+
+// Tinto duerme de noche (de 23:00 a 7:00) y despierta por la mañana, salvo que lo hayas despertado tú.
+export function autoSleep(pet) {
+  if (isNight(pet.now)) {
+    if (!pet.asleep && !pet.nightWoke && !pet.anim) {
+      pet.asleep = true;
+      pet.autoSlept = true;
+    }
+  } else {
+    pet.nightWoke = false;
+    if (pet.autoSlept && pet.asleep) pet.asleep = false;
+    pet.autoSlept = false;
+  }
 }
 
 export function reward(pet, stars) {
