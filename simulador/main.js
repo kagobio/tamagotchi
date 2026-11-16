@@ -1,11 +1,17 @@
 // Une la lógica (pet.js) y el dibujo (draw.js) con los botones, el táctil y el panel de pruebas.
 import * as Pet from "./pet.js";
-import { BAR, H, LANES, MENU, SLOTS, W, drawScreen } from "./draw.js";
+import { BAR, H, LANES, MENU, SCALE, SLOTS, W, drawScreen } from "./draw.js";
 
 const KEY = "tinto-v1";
 const $ = (id) => document.getElementById(id);
 const canvas = $("screen");
 const ctx = canvas.getContext("2d");
+canvas.width = W * SCALE;
+canvas.height = H * SCALE;
+const paint = (v) => {
+  ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
+  drawScreen(ctx, v);
+};
 const still = matchMedia("(prefers-reduced-motion: reduce)");
 
 function load() {
@@ -191,7 +197,7 @@ function frame(now) {
   if (!still.matches) view.t += real;
   if (bootLeft > 0) {
     bootLeft -= real;
-    drawScreen(ctx, { ...view, off: true });
+    paint({ ...view, off: true });
   } else {
     Pet.tick(pet, real * speed, real);
     if (view.screen === "game") {
@@ -205,7 +211,7 @@ function frame(now) {
       view.screen = "home";
       view.game = null;
     }
-    drawScreen(ctx, view);
+    paint(view);
   }
   if (now - saved > 4000) {
     saved = now;

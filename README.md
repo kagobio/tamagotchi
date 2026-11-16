@@ -39,7 +39,7 @@ Es una primera versión sin imprimir: las medidas de los componentes son nominal
 `simulador/` es la mascota ("Tinto") tal como se verá en la pantalla de 240 × 280 de la placa, con la lógica del juego separada del dibujo para poder pasarla después al firmware:
 
 - `pet.js`: estado, paso del tiempo, acciones, minijuego y los mensajes del ordenador (`phone`, `claude`, `cal`). No toca la pantalla.
-- `draw.js`: todo lo que se pinta, solo con rectángulos y texto.
+- `draw.js`: todo lo que se pinta, como ilustración suave (trazados, degradados y sombras) a triple resolución. En la placa saldrá de sprites ya renderizados a partir de estos mismos dibujos.
 - `main.js` e `index.html`: botones PWR y BOOT, táctil y un panel que imita lo que mandará el programa del ordenador.
 - `simulador.html`: todo junto en un archivo que se abre sin servidor. Se regenera con `node simulador/bundle.mjs`.
 
