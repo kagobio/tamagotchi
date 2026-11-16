@@ -191,6 +191,14 @@ export function finishGame(meta, id, result, now, { wanted = null } = {}) {
   return { stars, base, bonuses, newBest, events };
 }
 
+// Estrellas que no vienen de un juego (sorpresas, pasos, concentración…).
+export function award(meta, amount, event = null) {
+  earn(meta, amount);
+  const events = event ? record(meta, event, 1) : [];
+  events.push(...checkAchievements(meta, Date.now()));
+  return events;
+}
+
 // ───────── tienda ─────────
 export function buy(meta, id) {
   const item = itemById(id);

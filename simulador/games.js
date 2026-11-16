@@ -72,12 +72,14 @@ const estrellas = {
 export const LASER = { floor: 204, minY: 64, stalk: 0.75, pounce: 0.38, still: 14, reach: 22 };
 const laser = {
   init(g) {
-    Object.assign(g, { dot: { x: 120, y: 170 }, cat: { x: 60, dir: 1, mode: "idle", t: 0, from: 0, to: 0, hold: null }, focus: 0, catches: 0, misses: 0, held: false });
+    Object.assign(g, { dot: { x: 120, y: 170 }, cat: { x: 60, dir: 1, mode: "idle", t: 0, from: 0, to: 0, hold: null }, focus: 0, catches: 0, misses: 0, held: false, pops: [] });
   },
   tick(g, dt) {
     const cat = g.cat;
     const { dot } = g;
     cat.t += dt;
+    for (const pop of g.pops) pop.t += dt;
+    g.pops = g.pops.filter((pop) => pop.t < 0.6);
     if (cat.mode === "idle") {
       if (cat.t > 0.5) Object.assign(cat, { mode: "chase", t: 0 });
     } else if (cat.mode === "chase") {
@@ -108,6 +110,7 @@ const laser = {
       if (k >= 1) {
         if (dist(dot, { x: cat.to, y: cat.hold.y }) <= LASER.reach) {
           g.catches += 1;
+          g.pops.push({ x: cat.to, y: cat.hold.y, t: 0 });
           cat.mode = "proud";
           g.fx.push("catch");
         } else {

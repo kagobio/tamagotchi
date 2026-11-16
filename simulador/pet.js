@@ -22,6 +22,11 @@ export function createPet(now) {
     alert: null, // { kind, top, text, left } con los segundos que le quedan en pantalla
     anim: null, // { kind, t, length }
     lastPet: 0,
+    alertQueue: [], // avisos que esperan su turno
+    weather: null, // { kind, temp }
+    surprise: null, // { kind, t, x, y }
+    nextSurprise: 50, // segundos despierto hasta la próxima sorpresa
+    stepsToday: 0,
   };
 }
 
@@ -32,8 +37,15 @@ export const energy = (pet) => (pet.claude ? clamp(100 - pet.claude.used) : 100)
 export const exhausted = (pet) => energy(pet) <= 0;
 export const sleeping = (pet) => pet.asleep || exhausted(pet);
 
-function raise(pet, kind, top, text) {
-  pet.alert = { kind, top, text, left: ALERT_SECONDS };
+// Un aviso en pantalla; si ya hay uno, espera su turno.
+export function toast(pet, kind, top, text) {
+  const alert = { kind, top, text, left: ALERT_SECONDS };
+  if (!pet.alert) pet.alert = alert;
+  else if (pet.alertQueue.length < 6) pet.alertQueue.push(alert);
+}
+const raise = toast;
+function nextAlert(pet) {
+  pet.alert = pet.alertQueue.shift() || null;
 }
 
 // Un mensaje del programa del ordenador. Devuelve true si lo entendió.
@@ -60,6 +72,30 @@ export function apply(pet, message) {
     raise(pet, "cal", minutes ? `EN ${minutes} MIN` : "AHORA", title);
     return true;
   }
+  if (message.t === "claude-done") {
+    raise(pet, "claude", "CLAUDE", "Ha terminado la tarea");
+    if (!sleeping(pet)) play(pet, "cheer", 1.8);
+    return true;
+  }
+  if (message.t === "claude-ask") {
+    raise(pet, "claude", "CLAUDE", "Te necesita");
+    if (!sleeping(pet)) play(pet, "perk", 1.4);
+    return true;
+  }
+  if (message.t === "clap") {
+    if (!sleeping(pet)) play(pet, "perk", 1.4);
+    return true;
+  }
+  if (message.t === "steps") {
+    const n = Math.max(0, Math.round(Number(message.n) || 0));
+    pet.stepsToday += n;
+    pet.mood = clamp(pet.mood + Math.min(8, n / 40));
+    return true;
+  }
+  if (message.t === "weather") {
+    pet.weather = { kind: String(message.kind || "clear"), temp: Number.isFinite(Number(message.temp)) ? Math.round(Number(message.temp)) : null };
+    return true;
+  }
   return false;
 }
 
@@ -77,7 +113,7 @@ export function tick(pet, seconds, real = seconds) {
       pet.anim = null;
     }
   }
-  if (pet.alert && (pet.alert.left -= real) <= 0) pet.alert = null;
+  if (pet.alert && (pet.alert.left -= real) <= 0) nextAlert(pet);
   const due = pet.events.find((event) => !event.rung && pet.now >= event.at);
   if (due) {
     due.rung = true;
@@ -124,8 +160,36 @@ export function reward(pet, stars) {
 
 export function dismiss(pet) {
   if (!pet.alert) return false;
-  pet.alert = null;
+  nextAlert(pet);
   return true;
+}
+
+// Sorpresas: una mariposa que cruza el cuarto o un regalo en el suelo. Se tocan para ganar estrellas.
+export function surpriseTick(pet, real, rng) {
+  if (sleeping(pet)) return;
+  const s = pet.surprise;
+  if (s) {
+    s.t += real;
+    if (s.kind === "mariposa") {
+      s.x = -14 + s.t * 42;
+      s.y = 96 + 26 * Math.sin(s.t * 2.1);
+    }
+    if (s.t > (s.kind === "mariposa" ? 6.4 : 9)) pet.surprise = null;
+    return;
+  }
+  pet.nextSurprise -= real;
+  if (pet.nextSurprise <= 0) {
+    pet.surprise = rng() < 0.6 ? { kind: "mariposa", t: 0, x: -14, y: 96 } : { kind: "regalo", t: 0, x: 204, y: 206 };
+    pet.nextSurprise = 70 + rng() * 90;
+  }
+}
+
+// Devuelve el tipo de sorpresa si se tocó, y la quita.
+export function tapSurprise(pet, x, y) {
+  const s = pet.surprise;
+  if (!s || Math.hypot(s.x - x, s.y - y) > (s.kind === "regalo" ? 24 : 26)) return null;
+  pet.surprise = null;
+  return s.kind;
 }
 
 // Cómo se encuentra, de lo más urgente a lo menos.
@@ -152,35 +216,15 @@ export function whisper(pet) {
   return feeling(pet) === "contento" ? "¡Qué buen día!" : "Aquí estoy";
 }
 
+// La etapa de la vida de Tinto, por los días que lleva con nosotros.
+export function stage(pet) {
+  const days = (pet.now - pet.born) / 86400000;
+  return days < 3 ? "gatito" : days < 10 ? "joven" : "adulto";
+}
+
 export function age(pet) {
   const minutes = Math.floor((pet.now - pet.born) / 60000);
   const days = Math.floor(minutes / 1440);
   const hours = Math.floor((minutes % 1440) / 60);
   return days ? `${days} d ${hours} h` : hours ? `${hours} h ${minutes % 60} min` : `${minutes} min`;
-}
-
-// El minijuego: estrellas que caen por tres carriles y la mascota se coloca debajo.
-export const GAME = { seconds: 20, lanes: 3, floor: 1 };
-
-export function createGame() {
-  return { t: 0, lane: 1, stars: [], caught: 0, missed: 0, next: 0.6, over: false, seed: 7 };
-}
-
-export function gameTick(game, seconds) {
-  if (game.over) return;
-  game.t += seconds;
-  const speed = 0.45 + game.t * 0.03;
-  game.next -= seconds;
-  if (game.next <= 0 && game.t < GAME.seconds - 1.5) {
-    game.seed = (game.seed * 1103515245 + 12345) % 2147483648;
-    game.stars.push({ lane: game.seed % GAME.lanes, y: 0 });
-    game.next = Math.max(0.55, 1.2 - game.t * 0.03);
-  }
-  for (const star of game.stars) star.y += speed * seconds;
-  for (const star of game.stars.filter((item) => item.y >= GAME.floor)) {
-    if (star.lane === game.lane) game.caught += 1;
-    else game.missed += 1;
-  }
-  game.stars = game.stars.filter((item) => item.y < GAME.floor);
-  if (game.t >= GAME.seconds) game.over = true;
 }
