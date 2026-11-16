@@ -44,3 +44,9 @@ Es una primera versión sin imprimir: las medidas de los componentes son nominal
 - `simulador.html`: todo junto en un archivo que se abre sin servidor. Se regenera con `node simulador/bundle.mjs`.
 
 Controles: tocar los iconos de abajo (comer, jugar, dormir, estado) o acariciar a Tinto; con botones, PWR pasa de opción y BOOT confirma; mantener PWR apaga la pantalla.
+
+## Programa del ordenador
+
+`companion/` lleva a Tinto la batería del iPhone, los avisos de Outlook y el uso de Claude. Guía de instalación para Windows en [`companion/README.md`](companion/README.md). Las pruebas: `cd companion && npm test`.
+
+`mods/tinto-usage/` es el mod de Claude Code que le manda el uso. Se instala desde el marketplace de este repositorio: `/plugin install tinto-usage --marketplace kagobio/tamagotchi`.

@@ -1,0 +1,23 @@
+{
+  "name": "tinto-usage",
+  "version": "0.1.0",
+  "description": "Manda a Tinto cuánto uso de Claude te queda (límites de 5 horas y semanal), leyéndolo desde Claude Code.",
+  "userConfig": {
+    "port": {
+      "type": "number",
+      "title": "Puerto del programa de Tinto",
+      "description": "El mismo puerto en el que escucha «node companion/index.mjs». Por defecto 8787.",
+      "default": 8787
+    },
+    "key": {
+      "type": "string",
+      "title": "Clave de Tinto",
+      "description": "La clave que imprime «node companion/index.mjs urls».",
+      "sensitive": true,
+      "required": true
+    }
+  },
+  "author": {
+    "name": "kagobio"
+  }
+}

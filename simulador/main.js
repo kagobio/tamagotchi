@@ -179,9 +179,46 @@ if (pet.phone) {
 if (pet.claude) $("claude-used").value = pet.claude.used;
 $("phone-out").textContent = `${$("phone-level").value} %`;
 $("claude-out").textContent = `${$("claude-used").value} % usado`;
-phone();
-send({ t: "claude", used: Number($("claude-used").value) });
+// Si la página la sirve el programa del ordenador (con ?key=…), se conecta y Tinto vive con tus datos de verdad.
+const liveKey = new URLSearchParams(location.search).get("key");
+const live = Boolean(liveKey) && location.protocol.startsWith("http");
+if (!live) {
+  phone();
+  send({ t: "claude", used: Number($("claude-used").value) });
+}
 pet.alert = null;
+
+function showLive(text, state) {
+  const badge = $("live");
+  badge.textContent = text;
+  badge.dataset.state = state;
+  badge.hidden = false;
+}
+function connectLive() {
+  $("manual-title").textContent = "Datos en directo (puedes probar a mano)";
+  showLive("Conectando con el programa del ordenador…", "wait");
+  const source = new EventSource(`/events?key=${encodeURIComponent(liveKey)}`);
+  source.onopen = () => showLive("Conectado al programa del ordenador", "ok");
+  source.onerror = () => showLive("Sin conexión con el programa del ordenador: reintentando", "off");
+  source.onmessage = (event) => {
+    let message;
+    try {
+      message = JSON.parse(event.data);
+    } catch {
+      return;
+    }
+    if (message.t === "phone") {
+      $("phone-level").value = message.level;
+      $("phone-charging").checked = message.charging;
+      $("phone-out").textContent = `${message.level} %`;
+    } else if (message.t === "claude") {
+      $("claude-used").value = message.used;
+      $("claude-out").textContent = `${message.used} % usado`;
+    }
+    send(message);
+  };
+}
+if (live) connectLive();
 
 function status() {
   const feeling = Pet.feeling(pet);

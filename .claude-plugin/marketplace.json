@@ -1,0 +1,14 @@
+{
+  "name": "tinto",
+  "owner": {
+    "name": "kagobio"
+  },
+  "plugins": [
+    {
+      "name": "tinto-usage",
+      "source": "./mods/tinto-usage",
+      "description": "Manda a Tinto cuánto uso de Claude te queda, desde Claude Code."
+    }
+  ],
+  "description": "Mods de Claude Code para Tinto, la mascota de bolsillo."
+}
