@@ -2,7 +2,7 @@
 import * as Pet from "./pet.js";
 import { BAR, H, LANES, MENU, SLOTS, W, drawScreen } from "./draw.js";
 
-const KEY = "brote-v1";
+const KEY = "tinto-v1";
 const $ = (id) => document.getElementById(id);
 const canvas = $("screen");
 const ctx = canvas.getContext("2d");

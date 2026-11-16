@@ -11,10 +11,16 @@ export const LANES = [60, 120, 180];
 
 const C = {
   ink: "#1b1530",
-  body: "#7ee0c2",
-  shade: "#4fb89c",
-  belly: "#eafff6",
-  cheek: "#ff8fa3",
+  fur: "#34313f",
+  sheen: "#524e64",
+  rim: "#a19eba",
+  lid: "#8a86a3",
+  ear: "#d68ba0",
+  nose: "#c97b8c",
+  mouth: "#7a2e3f",
+  eyeG: "#b4de5e",
+  eyeW: "#d9ecf2",
+  eyeCloud: "#9cb9c7",
   white: "#ffffff",
   leaf: "#5cc96b",
   stem: "#3a9a4c",
@@ -90,79 +96,112 @@ function grid(ctx, ox, oy, unit) {
   return { rect, ellipse };
 }
 
-// La mascota: `x`, `ground` en píxeles de pantalla; `face` es cómo se encuentra.
+// Tinto: un gatito negro de orejas grandes, con el ojo izquierdo velado y el derecho verde, como en la foto.
+// `x`, `ground` en píxeles de pantalla; `face` es cómo se encuentra.
 export function drawPet(ctx, { x, ground, unit = 4, t, face, anim = null, alarmed = false, night = false }) {
-  const g = grid(ctx, x, ground, unit);
-  const asleep = face === "dormida";
-  const bob = asleep ? Math.floor(t * 0.6) % 2 : Math.floor(t * 1.6) % 2;
-  const rx = 13 + bob;
-  const ry = 12 - bob;
-  const down = face === "triste" || face === "hambrienta" || face === "cansada";
+  const asleep = face === "dormido";
+  const down = face === "triste" || face === "hambriento" || face === "cansado";
   let lift = 0;
   let sway = 0;
   if (anim && anim.kind === "love") lift = Math.round(Math.abs(Math.sin(anim.t * 6)) * 3);
   else if (anim && anim.kind === "no") sway = Math.round(Math.sin(anim.t * 20));
-  else if (face === "contenta" && t % 3 < 0.5) lift = Math.round(Math.sin(((t % 3) / 0.5) * Math.PI) * 4);
+  else if (face === "contento" && t % 3 < 0.5) lift = Math.round(Math.sin(((t % 3) / 0.5) * Math.PI) * 4);
+
+  const floor = grid(ctx, x, ground, unit);
+  const g = grid(ctx, x, ground - lift * unit, unit);
+  // Negro sobre fondo oscuro no se ve: de noche el contorno es una luz clara.
+  const line = night ? C.rim : C.ink;
   const cx = sway;
-  const by = -3 - ry - lift;
-  const top = by - ry;
+  const bob = asleep ? Math.floor(t * 0.6) % 2 : Math.floor(t * 1.6) % 2;
+  const hy = -16 + bob + (asleep ? 2 : 0);
 
-  g.ellipse(0, 0, 11 - Math.min(3, lift), 1, night ? C.nightLine : C.floorLine);
+  floor.ellipse(0, 0, 11 - Math.min(3, lift), 1, night ? C.nightLine : C.floorLine);
+
+  const wag = asleep ? 0 : Math.round(Math.sin(t * 2.2) * 1.4);
+  const tail = [[6, -3], [8, -4], [9, -6], [9, -8], [9 + wag, -10]];
+  for (const [tx, ty] of tail) g.rect(cx + tx - 1, ty - 1, 4, 4, line);
+  for (const [tx, ty] of tail) g.rect(cx + tx, ty, 2, 2, C.fur);
+
+  g.ellipse(cx, -6, 7, 6, line);
+  g.ellipse(cx, -6, 6, 5, C.fur);
+  g.ellipse(cx, -5, 2, 3, C.sheen);
   for (const side of [-1, 1]) {
-    g.ellipse(cx + side * 6, -2 - lift, 3, 1, C.ink);
-    g.rect(cx + side * 6 - 2, -3 - lift, 5, 1, C.body);
+    g.ellipse(cx + side * 3, -2, 2, 2, line);
+    g.ellipse(cx + side * 3, -2, 1, 1, C.fur);
+    g.rect(cx + side * 3, -1, 1, 1, C.sheen);
   }
+
+  const lean = alarmed ? 0 : down || asleep ? 4 : 2;
+  const height = alarmed ? 9 : down || asleep ? 6 : 8;
+  const tri = (mid, base, half, rows, tilt, color) => {
+    for (let r = 0; r < rows; r++) {
+      const w = Math.max(1, Math.round(half * 2 * (1 - r / rows)) + 1);
+      g.rect(Math.round(mid + tilt * (r / rows)) - Math.floor(w / 2), base - r, w, 1, color);
+    }
+  };
   for (const side of [-1, 1]) {
-    g.ellipse(cx + side * 9, top + 3, 3, 3, C.ink);
-    g.ellipse(cx + side * 9, top + 3, 2, 2, C.body);
+    const mid = cx + side * 7;
+    tri(mid, hy - 5, 5, height + 1, side * lean, line);
+    tri(mid, hy - 5, 4, height, side * lean, C.fur);
+    if (!down && !asleep) tri(mid, hy - 6, 2, height - 3, side * lean, C.ear);
   }
-  const droop = down || asleep ? 2 : 0;
-  g.rect(cx, top - 3, 1, 4, C.stem);
-  g.ellipse(cx - 3, top - 4 + droop, 2, 1, C.leaf);
-  g.ellipse(cx + 3, top - 5 + droop, 2, 1, C.leaf);
 
-  g.ellipse(cx, by, rx, ry, C.ink);
-  g.ellipse(cx, by, rx - 1, ry - 1, C.shade);
-  g.ellipse(cx - 1, by - 1, rx - 2, ry - 2, C.body);
-  g.ellipse(cx, by + 5, 6, 4, C.belly);
+  g.ellipse(cx, hy, 12, 9, line);
+  g.ellipse(cx, hy, 11, 8, C.fur);
+  g.ellipse(cx - 4, hy - 4, 4, 2, C.sheen);
+  g.rect(cx + 3, hy - 6, 2, 1, C.sheen);
 
-  const ey = by - 3;
-  const happy = (anim && anim.kind === "love") || (face === "contenta" && lift > 0);
-  const blink = !asleep && t % 4 < 0.14;
+  const ey = hy - 1;
+  const happy = (anim && anim.kind === "love") || (face === "contento" && lift > 0);
+  const shut = asleep || t % 4 < 0.14;
   for (const side of [-1, 1]) {
     const ex = cx + side * 5;
-    if (asleep || blink) g.rect(ex - 1, ey + 1, 3, 1, C.ink);
+    if (shut) g.rect(ex - 2, ey + 1, 5, 1, C.lid);
     else if (happy) {
-      g.rect(ex - 1, ey + 1, 1, 1, C.ink);
-      g.rect(ex, ey, 1, 1, C.ink);
-      g.rect(ex + 1, ey + 1, 1, 1, C.ink);
-    } else if (face === "cansada") {
-      g.rect(ex - 1, ey, 3, 1, C.shade);
-      g.rect(ex - 1, ey + 1, 3, 2, C.ink);
+      g.rect(ex - 2, ey + 1, 1, 1, C.lid);
+      g.rect(ex - 1, ey, 3, 1, C.lid);
+      g.rect(ex + 2, ey + 1, 1, 1, C.lid);
     } else {
-      g.rect(ex - 1, ey - 1 - (alarmed ? 1 : 0), 3, 4 + (alarmed ? 1 : 0), C.ink);
-      g.rect(ex - 1, face === "hambrienta" ? ey + 1 : ey - 1, 1, 1, C.white);
-      if (face === "triste") g.rect(ex - side, ey - 3, 2, 1, C.ink);
+      const tired = face === "cansado";
+      const tall = alarmed ? 3 : tired ? 1 : 2;
+      const cy = tired ? ey + 1 : ey;
+      if (side < 0) {
+        g.ellipse(ex, cy, 2, tall, C.eyeW);
+        g.rect(ex - 1, cy, 1, 1, C.eyeCloud);
+        g.rect(ex + 1, cy - 1, 1, 1, C.eyeCloud);
+      } else {
+        g.ellipse(ex, cy, 2, tall, C.eyeG);
+        g.rect(ex, cy - tall, 1, tall * 2 + 1, C.ink);
+        g.rect(ex - 1, cy - 1, 1, 1, C.white);
+      }
     }
-    g.rect(cx + side * 9 + (side < 0 ? -1 : 0), by + 1, 2, 1, C.cheek);
   }
 
-  const my = by + 2;
-  const dots = (points) => points.forEach(([dx, dy]) => g.rect(cx + dx, my + dy, 1, 1, C.ink));
+  const ny = ey + 3;
+  g.rect(cx - 1, ny, 3, 1, C.nose);
+  g.rect(cx, ny + 1, 1, 1, C.nose);
+  const my = ny + 3;
+  const dots = (points) => points.forEach(([dx, dy]) => g.rect(cx + dx, my + dy, 1, 1, C.lid));
   const chewing = anim && anim.kind === "eat" && Math.floor(anim.t * 4) % 2 === 0;
-  const yawning = face === "cansada" && t % 6 < 1.2;
-  if (chewing || alarmed) {
-    g.rect(cx - 1, my, 3, 3, C.ink);
-    g.rect(cx, my + 2, 1, 1, C.red);
-  } else if (yawning) g.rect(cx - 2, my - 1, 4, 4, C.ink);
-  else if (asleep) g.rect(cx, my + 1, 1, 1, C.ink);
-  else if (anim && anim.kind === "eat") g.rect(cx - 1, my + 1, 3, 1, C.ink);
-  else if (face === "triste" || face === "hambrienta" || (anim && anim.kind === "no")) dots([[-2, 1], [-1, 0], [0, 0], [1, 0], [2, 1]]);
-  else if (face === "cansada") g.rect(cx - 1, my + 1, 3, 1, C.ink);
-  else dots([[-2, 0], [-1, 1], [0, 1], [1, 1], [2, 0]]);
+  const yawning = face === "cansado" && t % 6 < 1.2;
+  if (chewing || alarmed) g.rect(cx - 1, my - 1, 3, 3, C.mouth);
+  else if (yawning) {
+    g.rect(cx - 2, my - 1, 5, 4, C.mouth);
+    g.rect(cx - 1, my + 2, 3, 1, C.ear);
+  } else if (asleep) g.rect(cx, my, 1, 1, C.lid);
+  else if (anim && anim.kind === "eat") g.rect(cx - 1, my, 3, 1, C.lid);
+  else if (face === "triste" || face === "hambriento" || (anim && anim.kind === "no")) dots([[0, -1], [-2, 1], [-1, 0], [1, 0], [2, 1]]);
+  else if (face === "cansado") dots([[0, -1], [-1, 0], [0, 0], [1, 0]]);
+  else dots([[0, -1], [-2, 0], [-1, 1], [1, 1], [2, 0]]);
+  const whisker = night ? "#c9c6dc" : "#3f3b52";
+  for (const side of [-1, 1]) {
+    const from = side < 0 ? cx - 14 : cx + 10;
+    g.rect(from, my - 1, 4, 1, whisker);
+    g.rect(from + (side < 0 ? 0 : 1), my + 1, 3, 1, whisker);
+  }
 
   const sx = x + cx * unit;
-  const sy = ground + by * unit;
+  const sy = ground - lift * unit + hy * unit;
   if (anim && anim.kind === "eat") map(ctx, ICONS.comer, sx + 15 * unit, ground - 12 * unit, unit - 1, Math.min(8, Math.floor(anim.t / 0.55) * 2));
   if (anim && anim.kind === "love")
     [0, 1, 2].forEach((index) => {
@@ -174,16 +213,14 @@ export function drawPet(ctx, { x, ground, unit = 4, t, face, anim = null, alarme
       const rise = ((t * 9 + index * 16) % 48) | 0;
       text(ctx, "z", sx + 12 * unit + index * 7, sy - 12 * unit - rise, { size: 11 + index * 3, color: C.blue, weight: 700 });
     });
-  if (face === "cansada" && !yawning) {
-    g.rect(cx + 12, by - 9 + (Math.floor(t * 2) % 3), 1, 2, C.blue);
-  }
-  if (face === "hambrienta" && !anim) {
-    box(ctx, sx + 13 * unit, sy - 23 * unit, 30, 30, 8, C.card);
-    map(ctx, ICONS.comer, sx + 13 * unit + 6, sy - 23 * unit + 6, 2);
+  if (face === "cansado" && !yawning) g.rect(cx + 12, hy - 6 + (Math.floor(t * 2) % 3), 1, 2, C.blue);
+  if (face === "hambriento" && !anim) {
+    box(ctx, sx + 12 * unit, sy - 21 * unit, 30, 30, 8, C.card);
+    map(ctx, ICONS.comer, sx + 12 * unit + 6, sy - 21 * unit + 6, 2);
   }
   if (alarmed) {
-    g.rect(cx - 16, top - 2, 2, 6, C.yellow);
-    g.rect(cx - 16, top + 5, 2, 2, C.yellow);
+    g.rect(cx - 17, hy - 12, 2, 6, C.yellow);
+    g.rect(cx - 17, hy - 5, 2, 2, C.yellow);
   }
 }
 
@@ -304,16 +341,16 @@ function game(ctx, { game: play, t }) {
   text(ctx, `★ ${play.caught}`, 28, 14, { size: 15, color: C.yellow, weight: 700 });
   text(ctx, `${Math.max(0, Math.ceil(GAME.seconds - play.t))} s`, 212, 14, { size: 15, color: C.card, align: "right", weight: 700 });
   for (const star of play.stars) map(ctx, ICONS.jugar, LANES[star.lane] - 13, 46 + star.y * 150, 3);
-  drawPet(ctx, { x: LANES[play.lane], ground: 244, unit: 2, t, face: "contenta", night: true });
+  drawPet(ctx, { x: LANES[play.lane], ground: 244, unit: 2, t, face: "contento", night: true });
   text(ctx, "toca un carril · PWR mueve", 120, 258, { size: 9, color: C.grey, align: "center" });
 }
 
 function result(ctx, { game: play, t }) {
   ctx.fillStyle = C.night;
   ctx.fillRect(0, 0, W, H);
-  drawPet(ctx, { x: 120, ground: 190, t, face: play.caught ? "contenta" : "triste", anim: play.caught ? { kind: "love", t } : null, night: true });
+  drawPet(ctx, { x: 120, ground: 190, t, face: play.caught ? "contento" : "triste", anim: play.caught ? { kind: "love", t } : null, night: true });
   text(ctx, play.caught === 1 ? "¡1 estrella!" : `¡${play.caught} estrellas!`, 120, 208, { size: 17, color: C.yellow, align: "center", weight: 700 });
-  text(ctx, play.caught ? "Brote está más contenta" : "Otra vez será", 120, 234, { size: 11, color: C.card, align: "center" });
+  text(ctx, play.caught ? "Tinto está más contento" : "Otra vez será", 120, 234, { size: 11, color: C.card, align: "center" });
 }
 
 export function drawScreen(ctx, view) {

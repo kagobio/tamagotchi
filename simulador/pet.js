@@ -1,7 +1,7 @@
 // La lógica de la mascota, sin nada de pantalla: estado, paso del tiempo, acciones y mensajes del ordenador.
 // Solo usa números y objetos sencillos para que pasarla al firmware de la placa sea mecánico.
 
-export const NAME = "Brote";
+export const NAME = "Tinto";
 
 // Cuánto tarda cada necesidad en vaciarse de 100 a 0, en segundos.
 export const DRAIN = { fullness: 6 * 3600, mood: 8 * 3600 };
@@ -130,13 +130,13 @@ export function dismiss(pet) {
 
 // Cómo se encuentra, de lo más urgente a lo menos.
 export function feeling(pet) {
-  if (sleeping(pet)) return "dormida";
-  if (pet.fullness < LOW.fullness) return "hambrienta";
-  if (pet.phone && pet.phone.level <= LOW.phone && !pet.phone.charging) return "cansada";
-  if (energy(pet) <= LOW.energy) return "cansada";
+  if (sleeping(pet)) return "dormido";
+  if (pet.fullness < LOW.fullness) return "hambriento";
+  if (pet.phone && pet.phone.level <= LOW.phone && !pet.phone.charging) return "cansado";
+  if (energy(pet) <= LOW.energy) return "cansado";
   if (pet.mood < LOW.mood) return "triste";
-  if (pet.mood > 70 && pet.fullness > 50) return "contenta";
-  return "tranquila";
+  if (pet.mood > 70 && pet.fullness > 50) return "contento";
+  return "tranquilo";
 }
 
 // La frase corta que explica por qué está así.
@@ -149,7 +149,7 @@ export function whisper(pet) {
   if (pet.mood < LOW.mood) return "¿Jugamos un rato?";
   const next = pet.events.find((event) => !event.rung);
   if (next) return `${next.title} en ${Math.max(1, Math.round((next.at - pet.now) / 60000))} min`;
-  return feeling(pet) === "contenta" ? "¡Qué buen día!" : "Aquí estoy";
+  return feeling(pet) === "contento" ? "¡Qué buen día!" : "Aquí estoy";
 }
 
 export function age(pet) {
